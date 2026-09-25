@@ -45,7 +45,7 @@
   .hidden{display:none!important}
   .field{display:flex;flex-direction:column;gap:6px}
   .field label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
-  select,input[type=text],input[type=number]{
+  select,input[type=text],input[type=number],input[type=password]{
     font:inherit;color:var(--ink);background:#fbfdfe;border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;
   }
   select:focus,input:focus{outline:2px solid rgba(18,135,199,.35);border-color:var(--accent-2)}
@@ -146,7 +146,8 @@
   }
   :root[data-theme="dark"] select,
   :root[data-theme="dark"] input[type=text],
-  :root[data-theme="dark"] input[type=number]{background:#0a1016}
+  :root[data-theme="dark"] input[type=number],
+  :root[data-theme="dark"] input[type=password]{background:#0a1016}
   :root[data-theme="dark"] .stat{background:#0a1016}
   :root[data-theme="dark"] .badge.normal{background:#0f1a25;border-color:#1c3247;color:#a4bcca}
   :root[data-theme="dark"] .entry{background:transparent}
