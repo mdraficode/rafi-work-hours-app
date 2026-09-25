@@ -283,7 +283,7 @@
     <div class="brand">
       <div class="logo">❄</div>
       <div>
-        <h1 id="app-title">Rafi's Work Hours</h1>
+        <h1 id="app-title">Rafi's Work Record</h1>
         <p class="sub">Daily tour work hours &amp; income</p>
       </div>
     </div>
@@ -613,7 +613,7 @@ let gTours = DEFAULT_TOURS.map(t => ({ ...t }));
 let gData = null;
 let myUser = null;
 let cloudLoaded = false;
-const brand = () => myUser ? myUser.name + "'s Work Hours" : "Rafi's Work Hours";
+const brand = () => myUser ? myUser.name + "'s Work Record" : "Rafi's Work Hours";
 function writeCache() {
   if (!myUser) return;
   try { localStorage.setItem(CACHE_PREFIX + myUser.id, JSON.stringify(state)); } catch (e) {}
@@ -1406,8 +1406,8 @@ async function enterApp(user, freshFile) {
   state = rec;
   writeCache();
   try { localStorage.setItem(SESSION_KEY, user.id); } catch (e) {}
-  $('app-title').textContent = user.name + ' Work Hours';
-  document.title = user.name + "'s Work Hours";
+  $('app-title').textContent = user.name + "'s Work Record";
+  document.title = user.name + "'s Work Record";
   $('i-rate').readOnly = true;
   $('main-tabs').classList.remove('hidden');
   $('admin-panel').classList.add('hidden');
@@ -1447,7 +1447,7 @@ function enterAdmin() {
   a.classList.remove('hidden');
 }
 function logout() {
-  const nm = isAdmin ? 'the Admin Panel' : (myUser ? myUser.name + ' Work Hours' : '');
+  const nm = isAdmin ? 'the Admin Panel' : (myUser ? myUser.name + "'s Work Record" : '');
   if (nm && !confirm('Log out of ' + nm + '?')) return;
   myUser = null; isAdmin = false; selectedWorkerId = null;
   state = emptyRecord();
