@@ -725,7 +725,7 @@ function renderLog() {
         ${isPaid ? '' : `<button class="mini" data-act="paid" data-id="${e.id}">Mark as paid</button>`}
         <button class="mini danger" data-act="del" data-id="${e.id}" title="Delete entry">✕</button>
       </div>
-      <button class="note-btn${e.note ? ' has' : ''}" type="button" data-note="${e.id}" title="${e.note ? 'View note' : 'Add a note'}">🔔</button>
+      <button class="note-btn${e.note ? ' has' : ''}" type="button" data-note="${e.id}" title="${e.note ? 'View note' : 'Add a note'}">📝</button>
       <div class="note-pop hidden" data-pop="${e.id}"></div>
     </div>`;
   }).join('');
@@ -1750,7 +1750,7 @@ function renderWorkerDetail(u, rec) {
     return '<div class="entry' + (paid ? ' paid' : '') + '" style="display:grid;grid-template-columns:110px 1fr auto auto;gap:10px;align-items:center;padding:8px 34px 8px 10px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px">' +
       '<b>' + fmtDate(e.date) + '</b><span>' + esc(e.tourName) + (dbl ? ' <span class="hint">❄</span>' : '') + '</span>' +
       '<b>' + fmtNum(e.hours) + ' h</b><button class="mini danger" data-wdel="' + e.id + '" type="button">✕</button>' +
-      '<button class="note-btn' + (e.note ? ' has' : '') + '" type="button" data-note="' + e.id + '" title="' + (e.note ? 'View note' : 'Add a note') + '">🔔</button>' +
+      '<button class="note-btn' + (e.note ? ' has' : '') + '" type="button" data-note="' + e.id + '" title="' + (e.note ? 'View note' : 'Add a note') + '">📝</button>' +
       '<div class="note-pop hidden" data-pop="' + e.id + '"></div></div>';
   }).join('');
   $('wd-log').innerHTML = rows || '<p class="hint">No entries logged yet.</p>';
