@@ -167,6 +167,9 @@
   .gate-tabs{margin-bottom:18px}
   .gate-tabs .tab{flex:1}
   .hint.err{color:var(--danger);font-weight:600}
+  .notice{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--dbl-bg);border:1px solid var(--dbl-line);color:var(--dbl);border-radius:12px;padding:12px 14px;margin-bottom:18px}
+  .notice.hidden{display:none}
+  .settings-block{border:1px solid var(--line);border-radius:12px;padding:16px}
   /* --- workers panel --- */
   .worker-row{display:grid;grid-template-columns:1fr auto;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;margin-bottom:10px;cursor:pointer;align-items:center;background:var(--card)}
   .worker-row:hover{border-color:var(--accent)}
@@ -232,6 +235,23 @@
           <div class="field"><label for="gl-name">Worker name</label><input id="gl-name" type="text" autocomplete="off"></div>
           <div class="field"><label for="gl-pass">Password</label><input id="gl-pass" type="password"></div>
           <button id="gl-submit" class="primary" type="button" style="width:100%">Log in</button>
+          <button id="gl-forgot" class="ghost" type="button" style="width:100%;margin-top:8px">Forgot password?</button>
+          <div id="gl-fa" class="hidden" style="margin-top:10px;padding-top:12px;border-top:1px dashed var(--line)">
+            <div id="glf-step1">
+              <p class="hint" style="margin-top:0">A 6-digit code will be sent to <b>mdrafi.aust.ipe@gmail.com</b>. Make sure your worker name is in the field above, then send the code.</p>
+              <button id="glf-send" class="ghost" type="button">Send code to my email</button>
+            </div>
+            <div id="glf-step2" class="hidden">
+              <div class="field"><label for="glf-code">Enter the 6-digit code</label><input id="glf-code" type="text" inputmode="numeric" maxlength="6"></div>
+              <button id="glf-verify" class="primary" type="button">Verify code</button>
+            </div>
+            <div id="glf-step3" class="hidden">
+              <div class="field"><label for="glf-new">New password</label><input id="glf-new" type="password"></div>
+              <div class="field"><label for="glf-confirm">Confirm password</label><input id="glf-confirm" type="password"></div>
+              <button id="glf-save" class="primary" type="button">Set new password</button>
+            </div>
+            <p id="glf-msg" class="hint" style="min-height:1.2em;margin-top:10px"></p>
+          </div>
         </div>
         <div id="gpane-newworker" class="hidden">
           <p class="hint" style="margin-top:0">Create your own account. Next time, log in with the same name and password — you will see your own work history.</p>
@@ -262,13 +282,12 @@
     </div>
   </header>
 
-  <nav class="tabs" role="tablist" aria-label="Sections">
+  <nav class="tabs" id="main-tabs" role="tablist" aria-label="Sections">
     <button class="tab active" data-tab="new" role="tab">＋ New entry</button>
     <button class="tab" data-tab="log" role="tab">📋 Work log</button>
     <button class="tab" data-tab="income" role="tab">💶 Total income</button>
     <button class="tab" data-tab="report" role="tab">📄 Reports</button>
-    <button class="tab" data-tab="packages" role="tab">🧳 Tour packages</button>
-    <button class="tab" data-tab="workers" role="tab" id="tabbtn-workers" hidden>👥 Workers</button>
+    <button class="tab" data-tab="backup" role="tab">💾 Backup</button>
   </nav>
 
   <!-- ============ NEW ENTRY ============ -->
@@ -367,8 +386,12 @@
     </div>
   </section>
 
-  <!-- ============ WORKERS (admin only) ============ -->
-  <section id="tab-workers" class="card hidden">
+  <!-- ============ ADMIN PANEL (independent, preset admin) ============ -->
+  <section id="admin-panel" class="card hidden">
+    <div id="admin-notice" class="notice hidden">
+      <span>⚠ You are still using the <b>default admin password</b>. Please set a new one now.</span>
+      <button id="admin-notice-btn" class="primary" type="button">Change password</button>
+    </div>
     <h2>Workers</h2>
     <div id="workers-overview" class="hint"></div>
     <div id="worker-list" style="margin-top:14px"></div>
@@ -386,35 +409,63 @@
       </div>
       <div id="wd-log"></div>
     </div>
+    <h2 style="margin-top:28px">Settings</h2>
+    <div class="settings-block">
+      <h3 style="font-size:14px;margin-bottom:6px">Tour packages</h3>
+      <p class="hint">Default hours per package — the New entry form fills them in automatically. Logged entries always keep the hours they were saved with.</p>
+      <div id="pkg-list"></div>
+      <div class="pkg-add">
+        <input id="p-name" type="text" maxlength="60" placeholder="New package name">
+        <input id="p-hours" type="number" min="0.5" step="0.5" placeholder="hrs">
+        <button id="p-add" class="primary">Add package</button>
+      </div>
+    </div>
+    <div class="settings-block" style="margin-top:16px">
+      <h3 style="font-size:14px;margin-bottom:6px">Change password</h3>
+      <p class="hint">The change is authorized only if the previous password is correct.</p>
+      <div class="field"><label for="sp-prev">Previous password</label><input id="sp-prev" type="password"></div>
+      <div class="field"><label for="sp-new">New password</label><input id="sp-new" type="password"></div>
+      <div class="field"><label for="sp-confirm">Confirm new password</label><input id="sp-confirm" type="password"></div>
+      <button id="sp-save" class="primary" type="button">Save new password</button>
+      <p id="sp-msg" class="hint" style="min-height:1.2em"></p>
+    </div>
+    <div class="settings-block" style="margin-top:16px">
+      <h3 style="font-size:14px;margin-bottom:6px">Forgot password</h3>
+      <p class="hint">A 6-digit code will be sent to <b>mdrafi.aust.ipe@gmail.com</b>. Enter the code, then set a new password.</p>
+      <div id="af-step1">
+        <button id="af-send" class="ghost" type="button">Send code to my email</button>
+      </div>
+      <div id="af-step2" class="hidden">
+        <div class="field"><label for="af-code">Enter the 6-digit code</label><input id="af-code" type="text" inputmode="numeric" maxlength="6"></div>
+        <button id="af-verify" class="primary" type="button">Verify code</button>
+      </div>
+      <div id="af-step3" class="hidden">
+        <div class="field"><label for="af-new">New password</label><input id="af-new" type="password"></div>
+        <div class="field"><label for="af-confirm">Confirm password</label><input id="af-confirm" type="password"></div>
+        <button id="af-save" class="primary" type="button">Set new password</button>
+      </div>
+      <p id="af-msg" class="hint" style="min-height:1.2em"></p>
+    </div>
   </section>
 
   <!-- ============ PACKAGES ============ -->
-  <section id="tab-packages" class="card hidden">
-    <h2>Tour packages</h2>
-    <p class="hint">Add, rename, re-price or remove packages — updates apply to the default hours in the New entry form.
-      Logged entries always keep the hours they were saved with.</p>
-    <div id="pkg-list"></div>
-    <div class="pkg-add">
-      <input id="p-name" type="text" maxlength="60" placeholder="New package name">
-      <input id="p-hours" type="number" min="0.5" step="0.5" placeholder="hrs">
-      <button id="p-add" class="primary">Add package</button>
-    </div>
-    <h2 style="font-size:15px">GitHub backup <span id="gh-status" class="hint" style="font-weight:400">○ not connected</span></h2>
-    <p class="hint">When connected, every change is automatically saved to your repository <b>mdraficode/rafi-work-hours</b>
-      (file <code>data/records.json</code>) a moment after you make it — so your work log survives refreshes, app updates, new browsers
-      and even cleared browser data. Entries are only removed from the repository when you delete them here in the Work log.
-      Connect once below with a GitHub personal access token — it is stored in <b>this browser only</b>, never in the page or the repo.</p>
+  <section id="tab-backup" class="card hidden">
+    <h2>Backup &amp; app key</h2>
+    <p class="hint">Every change is automatically saved to the shared private record — and only removed when deleted here in the app.
+      This tab lets this device reconnect to the record and export/import your own data as an extra manual backup.</p>
+    <h3 style="font-size:14px;margin-bottom:4px">App key (shared record)</h3>
+    <p class="hint">This device is: <span id="gh-status" class="hint" style="font-weight:400">○ not connected</span></p>
     <div class="gh-connect" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-      <input id="gh-token" type="password" placeholder="Paste your GitHub token (ghp_…)" style="flex:1;min-width:200px" autocomplete="off" spellcheck="false">
+      <input id="gh-token" type="password" placeholder="Paste the app key (ghp_…)" style="flex:1;min-width:200px" autocomplete="off" spellcheck="false">
       <button id="gh-connect" class="primary" type="button">Connect</button>
       <button id="gh-disconnect" class="ghost" type="button" hidden>Disconnect</button>
     </div>
     <p id="gh-msg" class="hint" style="margin-top:8px"></p>
-    <h2 style="font-size:15px;margin-top:18px">Manual backup</h2>
-    <p class="hint">Export/import work as an extra manual backup — useful for moving data between devices before connecting GitHub.</p>
+    <h3 style="font-size:14px;margin-top:20px;margin-bottom:4px">Manual backup (my data)</h3>
+    <p class="hint">Export/import your own work log as an extra manual backup — useful for moving data between devices.</p>
     <div class="backup">
-      <button id="b-export" class="ghost">⬇ Export data (JSON)</button>
-      <button id="b-import" class="ghost">⬆ Import data (JSON)</button>
+      <button id="b-export" class="ghost">⬇ Export my data (JSON)</button>
+      <button id="b-import" class="ghost">⬆ Import my data (JSON)</button>
       <input id="b-file" type="file" accept="application/json,.json" hidden>
     </div>
   </section>
@@ -683,6 +734,7 @@ function renderIncome() {
   $('i-total').textContent = (Number.isFinite(rate) && rate > 0) ? eurFmt(total * rate) : 'set hourly income';
 }
 function renderPackages() {
+  if (!$('pkg-list')) return;
   $('pkg-list').innerHTML = gTours.map((t, i) => `
     <div class="pkg-row">
       <span class="pkg-idx">${i + 1}.</span>
@@ -691,7 +743,7 @@ function renderPackages() {
       <button class="mini danger" data-del="${i}" title="Delete package">✕</button>
     </div>`).join('');
 }
-function renderAll() { updatePaidPill(); renderLog(); renderIncome(); renderPackages(); renderWorkers(); }
+function renderAll() { updatePaidPill(); renderLog(); renderIncome(); renderPackages(); }
 
 /* ---------- actions ---------- */
 function addEntry() {
@@ -975,21 +1027,58 @@ function downloadFile(name, content, type) {
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
-/* ---------- auth (accounts stored in the shared record, salted + hashed) ---------- */
+/* ---------- auth (accounts in the shared record, salted + hashed; preset admin) ---------- */
+function sha256Bytes(bytes) {
+  const K = [0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  let h0=0x6a09e667,h1=0xbb67ae85,h2=0x3c6ef372,h3=0xa54ff53a,h4=0x510e527f,h5=0x9b05688c,h6=0x1f83d9ab,h7=0x5be0cd19;
+  const l = bytes.length;
+  const bitLen = l * 8;
+  const total = Math.ceil((l + 9) / 64) * 64;
+  const m = new Uint8Array(total);
+  m.set(bytes); m[l] = 0x80;
+  const dv = new DataView(m.buffer);
+  dv.setUint32(total - 8, Math.floor(bitLen / 0x100000000), false);
+  dv.setUint32(total - 4, bitLen >>> 0, false);
+  const w = new Int32Array(64);
+  const rr = (x, n) => (x >>> n) | (x << (32 - n));
+  for (let i = 0; i < total; i += 64) {
+    for (let t = 0; t < 16; t++) w[t] = dv.getUint32(i + t*4, false);
+    for (let t = 16; t < 64; t++) {
+      const s0 = rr(w[t-15],7) ^ rr(w[t-15],18) ^ (w[t-15]>>>3);
+      const s1 = rr(w[t-2],17) ^ rr(w[t-2],19) ^ (w[t-2]>>>10);
+      w[t] = (w[t-16] + s0 + w[t-7] + s1) | 0;
+    }
+    let a=h0,b=h1,c=h2,d=h3,e=h4,f=h5,g=h6,h=h7;
+    for (let t = 0; t < 64; t++) {
+      const S1 = rr(e,6) ^ rr(e,11) ^ rr(e,25);
+      const ch = (e & f) ^ (~e & g);
+      const t1 = (h + S1 + ch + K[t] + w[t]) | 0;
+      const S0 = rr(a,2) ^ rr(a,13) ^ rr(a,22);
+      const maj = (a & b) ^ (a & c) ^ (b & c);
+      const t2 = (S0 + maj) | 0;
+      h=g; g=f; f=e; e=(d+t1)|0; d=c; c=b; b=a; a=(t1+t2)|0;
+    }
+    h0=(h0+a)|0; h1=(h1+b)|0; h2=(h2+c)|0; h3=(h3+d)|0; h4=(h4+e)|0; h5=(h5+f)|0; h6=(h6+g)|0; h7=(h7+h)|0;
+  }
+  return [h0,h1,h2,h3,h4,h5,h6,h7].map(x => (x>>>0).toString(16).padStart(8,'0')).join('');
+}
 async function sha256hex(str) {
   if (typeof crypto !== 'undefined' && crypto.subtle) {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
   }
-  let h1 = 0xdeadbeef ^ str.length, h2 = 0x41c6ce57 ^ str.length;
-  for (let i = 0; i < str.length; i++) {
-    const ch = str.charCodeAt(i);
-    h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677);
-  }
-  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
-  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 2246822507);
-  return (h2 >>> 0).toString(16).padStart(8, '0') + (h1 >>> 0).toString(16).padStart(8, '0');
+  return sha256Bytes(new TextEncoder().encode(str));
 }
+const RESET_EMAIL = 'mdrafi.aust.ipe@gmail.com';
+// Preset accounts (created automatically from the old single-user record):
+//   worker "Rafi" (existing history) and admin (default password: "admin")
+const SEED_RAFI = { id: 'u-rafi', name: 'Rafi', role: 'worker', salt: 'seed-rafi-v1', hash: '7f5d6fe7bbfcfd420c714cb972173909fb3f1178bc8222f296238a5e23787bcd' };
+const SEED_ADMIN = { salt: 'seed-admin-v1', hash: 'c1a82fffb85e737ee869642e9e9f689a62aedd23bd868195f80226ac3511caaf', mustChange: true };
+let EMAILJS_PUBLIC_KEY = '';
+let EMAILJS_SERVICE_ID = '';
+let EMAILJS_TEMPLATE_ID = '';
+window.rwhTest = { setEmailConfig(a, b, c) { EMAILJS_PUBLIC_KEY = a; EMAILJS_SERVICE_ID = b; EMAILJS_TEMPLATE_ID = c; } };
+function emailConfigured() { return !!(EMAILJS_PUBLIC_KEY && EMAILJS_SERVICE_ID && EMAILJS_TEMPLATE_ID); }
 async function makeUser(name, pw, role) {
   const salt = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
   const hash = await sha256hex(salt + '|' + name.trim().toLowerCase() + '|' + pw);
@@ -999,6 +1088,10 @@ async function checkPassword(user, pw) {
   const hash = await sha256hex(user.salt + '|' + user.name.trim().toLowerCase() + '|' + pw);
   return hash === user.hash;
 }
+async function checkAdminPassword(admin, pw) {
+  const hash = await sha256hex(admin.salt + '|admin|' + pw);
+  return hash === admin.hash;
+}
 function userByName(name) {
   const n = (name || '').trim().toLowerCase();
   return (gData && Array.isArray(gData.users) ? gData.users : []).find(u => u.name.trim().toLowerCase() === n) || null;
@@ -1006,6 +1099,7 @@ function userByName(name) {
 
 /* ---------- shared record sync (GitHub repo mdraficode/rafi-work-hours) ---------- */
 let cloudBusy = false, cloudTimer = null;
+let isAdmin = false;
 function ghToken() { try { return localStorage.getItem(GH_TOKEN_KEY) || null; } catch (e) { return null; } }
 function setCloudStatus(s) {
   const c = $('cloud-pill');
@@ -1035,9 +1129,21 @@ function ghFetch(path, options) {
 function toB64(str) { return btoa(unescape(encodeURIComponent(str))); }
 function fromB64(b64) { return decodeURIComponent(escape(atob(b64))); }
 function isV1(file) { return !!file && !Array.isArray(file.users) && Array.isArray(file.entries); }
+function virtualFileFromV1(v1) {
+  return {
+    version: 2,
+    updatedAt: typeof v1.updatedAt === 'string' ? v1.updatedAt : null,
+    tours: (Array.isArray(v1.tours) && v1.tours.length)
+      ? v1.tours.filter(t => t && t.id && t.name).map(t => ({ id: String(t.id), name: String(t.name), hours: Math.max(0, Number(t.hours) || 0) }))
+      : DEFAULT_TOURS.map(t => ({ ...t })),
+    users: [{ ...SEED_RAFI }],
+    records: { 'u-rafi': normalizeRecord(v1) },
+    admin: { ...SEED_ADMIN }
+  };
+}
 function normalizeFile(f) {
-  const users = Array.isArray(f.users) ? f.users.filter(u => u && u.id && u.name).map(u => ({
-    id: String(u.id), name: String(u.name), role: u.role === 'admin' ? 'admin' : 'worker',
+  const users = Array.isArray(f.users) ? f.users.filter(u => u && u.id && u.name && u.role !== 'admin').map(u => ({
+    id: String(u.id), name: String(u.name), role: 'worker',
     salt: String(u.salt || ''), hash: String(u.hash || '')
   })) : [];
   const records = {};
@@ -1047,9 +1153,10 @@ function normalizeFile(f) {
   const tours = Array.isArray(f.tours) && f.tours.length
     ? f.tours.filter(t => t && t.id && t.name).map(t => ({ id: String(t.id), name: String(t.name), hours: Math.max(0, Number(t.hours) || 0) }))
     : DEFAULT_TOURS.map(t => ({ ...t }));
-  const out = { version: 2, updatedAt: typeof f.updatedAt === 'string' ? f.updatedAt : null, tours, users, records };
-  if (f.v1Raw) out.v1Raw = f.v1Raw;
-  return out;
+  const admin = (f.admin && f.admin.salt && f.admin.hash)
+    ? { salt: String(f.admin.salt), hash: String(f.admin.hash), mustChange: !!f.admin.mustChange }
+    : { ...SEED_ADMIN };
+  return { version: 2, updatedAt: typeof f.updatedAt === 'string' ? f.updatedAt : null, tours, users, records, admin };
 }
 async function fetchCloud() {
   const res = await ghFetch('contents/' + GH_FILE, { method: 'GET', cache: 'no-store' });
@@ -1061,13 +1168,9 @@ async function fetchCloud() {
   return { sha: f.sha, file: data };
 }
 function baseFile(raw) {
-  if (raw && !isV1(raw)) return normalizeFile(raw);
-  const tours = raw && Array.isArray(raw.tours) && raw.tours.length
-    ? normalizeFile({ tours: raw.tours }).tours
-    : DEFAULT_TOURS.map(t => ({ ...t }));
-  const base = { version: 2, updatedAt: null, tours, users: [], records: {} };
-  if (raw && isV1(raw)) base.v1Raw = raw;
-  return base;
+  if (!raw) return { version: 2, updatedAt: null, tours: DEFAULT_TOURS.map(t => ({ ...t })), users: [], records: {}, admin: { ...SEED_ADMIN } };
+  if (isV1(raw)) return virtualFileFromV1(raw);
+  return normalizeFile(raw);
 }
 async function writeCloud(mutateFn, message) {
   for (let attempt = 0; attempt < 4; attempt++) {
@@ -1128,8 +1231,8 @@ async function cloudSync() {
   setCloudStatus('saving');
   try {
     const { file } = await fetchCloud();
-    if (file && !isV1(file)) {
-      gData = normalizeFile(file);
+    if (file) {
+      gData = isV1(file) ? virtualFileFromV1(file) : normalizeFile(file);
       gTours = gData.tours.slice();
       const theirs = gData.records[myUser.id] ? normalizeRecord(gData.records[myUser.id]) : null;
       if (theirs && (theirs.updatedAt || '') > (state.updatedAt || '')) {
@@ -1146,7 +1249,7 @@ async function cloudSync() {
   }
 }
 function saveTours() {
-  if (!myUser || myUser.role !== 'admin') { toast('Only the admin can change tour packages.'); return; }
+  if (!myUser || !isAdmin) { toast('Only the admin can change tour packages.'); return; }
   writeCloud((base) => { base.tours = gTours.map(t => ({ ...t })); }, 'chore: update tour packages')
     .then(() => setCloudStatus('synced'))
     .catch(() => setCloudStatus('warn'));
@@ -1194,6 +1297,7 @@ function showGate(mode) {
 function gateErr(msg) { const e = $('gate-err'); if (e) e.textContent = msg || ''; }
 async function enterApp(user, freshFile) {
   myUser = user;
+  isAdmin = false;
   if (freshFile) gData = freshFile;
   gTours = (gData && Array.isArray(gData.tours) && gData.tours.length) ? gData.tours.slice() : DEFAULT_TOURS.map(t => ({ ...t }));
   const rec = (gData && gData.records[user.id]) ? normalizeRecord(gData.records[user.id]) : (loadCache(user.id) || emptyRecord());
@@ -1202,8 +1306,12 @@ async function enterApp(user, freshFile) {
   try { localStorage.setItem(SESSION_KEY, user.id); } catch (e) {}
   $('app-title').textContent = user.name + ' Work Hours';
   document.title = user.name + "'s Work Hours";
-  $('tabbtn-workers').hidden = user.role !== 'admin';
-  $('i-rate').readOnly = user.role !== 'admin';
+  $('i-rate').readOnly = true;
+  $('main-tabs').classList.remove('hidden');
+  $('admin-panel').classList.add('hidden');
+  $('paid-pill').style.display = '';
+  document.querySelectorAll('#main-tabs .tab').forEach(b => b.classList.toggle('active', b.dataset.tab === 'new'));
+  ['new', 'log', 'income', 'report', 'backup'].forEach(t => $('tab-' + t).classList.toggle('hidden', t !== 'new'));
   $('gate').classList.add('hidden');
   $('app').classList.remove('hidden');
   if (state.hourlyRate != null) $('i-rate').value = fmtNum(state.hourlyRate);
@@ -1217,12 +1325,35 @@ async function enterApp(user, freshFile) {
   setCloudStatus(ghToken() ? 'synced' : 'off');
   cloudSync();
 }
-function logout() {
-  if (myUser && !confirm('Log out of ' + myUser.name + ' Work Hours?')) return;
+function enterAdmin() {
   myUser = null;
-  try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+  isAdmin = true;
   state = emptyRecord();
-  selectedWorkerId = null;
+  try { localStorage.setItem(SESSION_KEY, 'admin'); } catch (e) {}
+  $('app-title').textContent = 'Admin Panel';
+  document.title = "Admin Panel — Rafi's Work Hours";
+  $('main-tabs').classList.add('hidden');
+  ['new', 'log', 'income', 'report', 'backup'].forEach(t => $('tab-' + t).classList.add('hidden'));
+  $('admin-panel').classList.remove('hidden');
+  $('paid-pill').style.display = 'none';
+  $('admin-notice').classList.toggle('hidden', !(gData && gData.admin && gData.admin.mustChange));
+  renderWorkers();
+  applyTheme(initialTheme());
+  setCloudStatus(ghToken() ? 'synced' : 'off');
+  const g = $('gate'), a = $('app');
+  g.classList.add('hidden');
+  a.classList.remove('hidden');
+}
+function logout() {
+  const nm = isAdmin ? 'the Admin Panel' : (myUser ? myUser.name + ' Work Hours' : '');
+  if (nm && !confirm('Log out of ' + nm + '?')) return;
+  myUser = null; isAdmin = false; selectedWorkerId = null;
+  state = emptyRecord();
+  try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+  $('main-tabs').classList.remove('hidden');
+  $('admin-panel').classList.add('hidden');
+  $('worker-detail').classList.add('hidden');
+  $('paid-pill').style.display = '';
   showGate(ghToken() ? 'login' : 'token');
   setCloudStatus('off');
 }
@@ -1232,11 +1363,12 @@ async function doWorkerLogin() {
   gateErr('');
   try {
     const { file } = await fetchCloud();
-    if (!file || isV1(file)) throw new Error('The shared record is not set up yet — the admin needs to create the admin account first (Admin tab).');
-    gData = normalizeFile(file);
+    if (!file) throw new Error('The shared record could not be found. Contact the admin.');
+    gData = isV1(file) ? virtualFileFromV1(file) : normalizeFile(file);
     const u = userByName(name);
     if (!u) throw new Error('No worker found with that name. (New here? Use the "New Worker" tab.)');
     if (!(await checkPassword(u, pw))) throw new Error('Wrong password.');
+    $('gl-pass').value = '';
     enterApp(u, gData);
   } catch (e) { gateErr(e.message); }
 }
@@ -1263,56 +1395,33 @@ async function doWorkerSignup() {
 function renderAdminPane() {
   const pane = $('gpane-admin');
   if (!pane) return;
-  if (!cloudLoaded) {
-    pane.innerHTML = '<p class="hint">Connecting to the shared record…</p>';
-    return;
-  }
-  const hasAdmin = gData && Array.isArray(gData.users) && gData.users.some(u => u.role === 'admin');
-  if (!hasAdmin) {
-    pane.innerHTML = '<p class="hint" style="margin-top:0">No admin account exists yet. Create it now — any work records already in the shared record will belong to this admin account.</p>' +
-      '<div class="field"><label for="ga-name">Admin name</label><input id="ga-name" type="text" placeholder="Your full name" autocomplete="off"></div>' +
-      '<div class="field"><label for="ga-pass">Password</label><input id="ga-pass" type="password" placeholder="At least 4 characters"></div>' +
-      '<button id="ga-create" class="primary" type="button" style="width:100%">Create admin account</button>';
-    $('ga-create').addEventListener('click', doAdminCreate);
-  } else {
-    pane.innerHTML = '<div class="field"><label for="ga-name">Admin name</label><input id="ga-name" type="text" autocomplete="off"></div>' +
-      '<div class="field"><label for="ga-pass">Password</label><input id="ga-pass" type="password"></div>' +
-      '<button id="ga-login" class="primary" type="button" style="width:100%">Log in as admin</button>';
-    $('ga-login').addEventListener('click', doAdminLogin);
-  }
+  pane.innerHTML = '<p class="hint" style="margin-top:0">Log in with the admin password — no name needed.</p>' +
+    '<div class="field"><label for="ga-pass">Admin password</label><input id="ga-pass" type="password"></div>' +
+    '<button id="ga-login" class="primary" type="button" style="width:100%">Log in as admin</button>' +
+    '<button id="ga-forgot" class="ghost" type="button" style="width:100%;margin-top:8px">Forgot admin password?</button>' +
+    '<div id="ga-fa" class="hidden" style="margin-top:10px;padding-top:12px;border-top:1px dashed var(--line)">' +
+    '<div id="gaf-step1"><p class="hint" style="margin-top:0">A 6-digit code will be sent to <b>' + RESET_EMAIL + '</b>.</p><button id="gaf-send" class="ghost" type="button">Send code to my email</button></div>' +
+    '<div id="gaf-step2" class="hidden"><div class="field"><label for="gaf-code">Enter the 6-digit code</label><input id="gaf-code" type="text" inputmode="numeric" maxlength="6"></div><button id="gaf-verify" class="primary" type="button">Verify code</button></div>' +
+    '<div id="gaf-step3" class="hidden"><div class="field"><label for="gaf-new">New password</label><input id="gaf-new" type="password"></div><div class="field"><label for="gaf-confirm">Confirm password</label><input id="gaf-confirm" type="password"></div><button id="gaf-save" class="primary" type="button">Set new password</button></div>' +
+    '<p id="gaf-msg" class="hint" style="min-height:1.2em;margin-top:10px"></p></div>';
+  $('ga-login').addEventListener('click', doAdminLogin);
+  $('ga-pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') doAdminLogin(); });
+  $('ga-forgot').addEventListener('click', () => { $('ga-fa').classList.toggle('hidden'); $('gaf-msg').textContent = ''; resetForgotSteps('gaf', 1); });
+  $('gaf-send').addEventListener('click', gafSend);
+  $('gaf-verify').addEventListener('click', gafVerify);
+  $('gaf-save').addEventListener('click', gafSave);
 }
 async function doAdminLogin() {
-  const name = $('ga-name').value.trim(), pw = $('ga-pass').value;
-  if (!name || !pw) { gateErr('Enter the admin name and password.'); return; }
+  const pw = $('ga-pass').value;
+  if (!pw) { gateErr('Enter the admin password.'); return; }
   gateErr('');
   try {
     const { file } = await fetchCloud();
-    if (!file || isV1(file)) throw new Error('The shared record is not set up yet.');
-    gData = normalizeFile(file);
-    const u = userByName(name);
-    if (!u || u.role !== 'admin') throw new Error('No admin account with that name.');
-    if (!(await checkPassword(u, pw))) throw new Error('Wrong password.');
-    enterApp(u, gData);
-  } catch (e) { gateErr(e.message); }
-}
-async function doAdminCreate() {
-  const name = $('ga-name').value.trim(), pw = $('ga-pass').value;
-  if (name.length < 2) { gateErr('Enter the admin name (at least 2 characters).'); return; }
-  if (pw.length < 4) { gateErr('Choose a password with at least 4 characters.'); return; }
-  gateErr('');
-  try {
-    const u = await makeUser(name, pw, 'admin');
-    await writeCloud((base) => {
-      if (base.users.some(x => x.role === 'admin')) throw new Error('An admin account already exists — log in instead.');
-      base.users.push(u);
-      if (base.v1Raw) {
-        base.records[u.id] = normalizeRecord(base.v1Raw);
-        delete base.v1Raw;
-      } else if (!base.records[u.id]) {
-        base.records[u.id] = emptyRecord();
-      }
-    }, 'feat: admin account created — ' + u.name);
-    enterApp(u, gData);
+    gData = file ? baseFile(file) : baseFile(null);
+    if (!(await checkAdminPassword(gData.admin, pw))) throw new Error('Wrong admin password.');
+    $('ga-pass').value = '';
+    $('ga-fa').classList.add('hidden');
+    enterAdmin();
   } catch (e) { gateErr(e.message); }
 }
 async function connectGateKey() {
@@ -1327,9 +1436,8 @@ async function connectGateKey() {
     await verifyToken();
     msg.textContent = '✅ Connected to the shared record.';
     const { file } = await fetchCloud();
-    if (file && !isV1(file)) gData = normalizeFile(file);
+    gData = file ? baseFile(file) : null;
     showGate('login');
-    renderAdminPane();
     gateErr('');
   } catch (e) {
     try { localStorage.removeItem(GH_TOKEN_KEY); } catch (e2) {}
@@ -1339,27 +1447,153 @@ async function connectGateKey() {
 async function boot() {
   if (!ghToken()) { showGate('token'); return; }
   showGate('login');
-  if (typeof fetch === 'undefined') { renderAdminPane(); gateErr('This browser has no network access.'); return; }
+  if (typeof fetch === 'undefined') { gateErr('This browser has no network access.'); return; }
   try {
     const { file } = await fetchCloud();
     cloudLoaded = true;
-    if (file && !isV1(file)) gData = normalizeFile(file);
+    gData = file ? baseFile(file) : baseFile(null);
     let sessId = null;
     try { sessId = localStorage.getItem(SESSION_KEY); } catch (e) {}
-    if (sessId && gData) {
+    if (sessId === 'admin') { enterAdmin(); return; }
+    if (sessId) {
       const u = gData.users.find(x => x.id === sessId);
       if (u) { enterApp(u, gData); return; }
     }
     showGate('login');
-    renderAdminPane();
   } catch (e) {
     showGate('login');
-    renderAdminPane();
-    gateErr('Could not reach the shared record: ' + e.message + ' — check the app key and your connection, then try logging in.');
+    gateErr('Could not reach the shared record: ' + e.message + ' — check the app key and your connection, then try again.');
   }
 }
 
-/* ---------- workers panel (admin only) ---------- */
+/* ---------- password reset by email code (admin + workers) ---------- */
+let resetFlow = null;
+function resetForgotSteps(prefix, step) {
+  for (let n = 1; n <= 3; n++) {
+    const el = $(prefix + '-step' + n);
+    if (el) el.classList.toggle('hidden', n !== step);
+  }
+}
+async function loadEmailJS() {
+  if (window.emailjs) return window.emailjs;
+  await new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js';
+    s.onload = res;
+    s.onerror = () => rej(new Error('could not load the email service — check your connection'));
+    document.head.appendChild(s);
+  });
+  return window.emailjs;
+}
+async function sendResetCode(whoName) {
+  if (!emailConfigured()) throw new Error('Email alerts are not set up yet — password reset will be available soon. Until then, ask the admin to reset it manually.');
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const emailjs = await loadEmailJS();
+  const r = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, { code: code, who: whoName, to: RESET_EMAIL }, { publicKey: EMAILJS_PUBLIC_KEY });
+  if (!r || (r.status && r.status >= 400)) throw new Error('Could not send the code email. Try again in a moment.');
+  resetFlow = { code: code, exp: Date.now() + 10 * 60 * 1000 };
+}
+function verifyResetCode(input) {
+  if (!resetFlow) return 'No code was requested — press "Send code" first.';
+  if (Date.now() > resetFlow.exp) { resetFlow = null; return 'That code has expired (10 min) — send a new one.'; }
+  if (String(input).trim() !== resetFlow.code) return 'The code does not match. Try again.';
+  resetFlow = null;
+  return null;
+}
+async function applyResetPassword(target, pw) {
+  const tname = (target.name || '').trim().toLowerCase();
+  const { file } = await fetchCloud();
+  const data = file ? baseFile(file) : baseFile(null);
+  let user = null;
+  if (target.kind === 'worker') user = (data.users || []).find(u => u.name.trim().toLowerCase() === tname);
+  if (target.kind === 'worker' && !user) return 'Worker not found.';
+  const salt = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+  const prefix = user ? (salt + '|' + user.name.trim().toLowerCase() + '|') : (salt + '|admin|');
+  const hash = await sha256hex(prefix + pw);
+  try {
+    await writeCloud((b) => {
+      if (target.kind === 'admin') {
+        b.admin = { salt: salt, hash: hash, mustChange: false };
+      } else {
+        const u2 = b.users.find(x => x.name.trim().toLowerCase() === tname);
+        if (!u2) throw new Error('Worker not found.');
+        u2.salt = salt; u2.hash = hash;
+      }
+    }, 'chore: password reset');
+    return null;
+  } catch (e) { return e.message; }
+}
+async function glfSend() {
+  const name = $('gl-name').value.trim();
+  if (!name) { $('glf-msg').textContent = 'Enter your worker name in the field above first.'; return; }
+  try {
+    $('glf-msg').textContent = 'Sending code…';
+    await sendResetCode(name);
+    resetForgotSteps('glf', 2);
+    $('glf-msg').textContent = 'A code was sent to ' + RESET_EMAIL + ' — it stays valid for 10 minutes.';
+  } catch (e) { $('glf-msg').textContent = '⚠ ' + e.message; }
+}
+function glfVerify() {
+  const err = verifyResetCode($('glf-code').value);
+  if (err) { $('glf-msg').textContent = err; return; }
+  resetForgotSteps('glf', 3);
+  $('glf-msg').textContent = 'Code verified — set your new password below.';
+}
+async function glfSave() {
+  const nw = $('glf-new').value, cf = $('glf-confirm').value;
+  if (!nw || nw.length < 4) { $('glf-msg').textContent = 'New password must be at least 4 characters.'; return; }
+  if (nw !== cf) { $('glf-msg').textContent = 'Password and confirmation do not match.'; return; }
+  const err = await applyResetPassword({ kind: 'worker', name: $('gl-name').value.trim() }, nw);
+  if (err) { $('glf-msg').textContent = '⚠ ' + err; return; }
+  $('glf-msg').textContent = '✅ Password updated — log in with the new password.';
+  $('glf-new').value = ''; $('glf-confirm').value = ''; $('glf-code').value = '';
+  resetForgotSteps('glf', 1);
+}
+async function gafSend() {
+  try {
+    $('gaf-msg').textContent = 'Sending code…';
+    await sendResetCode('Admin');
+    resetForgotSteps('gaf', 2);
+    $('gaf-msg').textContent = 'A code was sent to ' + RESET_EMAIL + ' — it stays valid for 10 minutes.';
+  } catch (e) { $('gaf-msg').textContent = '⚠ ' + e.message; }
+}
+function gafVerify() {
+  const err = verifyResetCode($('gaf-code').value);
+  if (err) { $('gaf-msg').textContent = err; return; }
+  resetForgotSteps('gaf', 3);
+  $('gaf-msg').textContent = 'Code verified — set the new password below.';
+}
+async function gafSave() {
+  const nw = $('gaf-new').value, cf = $('gaf-confirm').value;
+  if (!nw || nw.length < 4) { $('gaf-msg').textContent = 'New password must be at least 4 characters.'; return; }
+  if (nw !== cf) { $('gaf-msg').textContent = 'Password and confirmation do not match.'; return; }
+  const err = await applyResetPassword({ kind: 'admin' }, nw);
+  if (err) { $('gaf-msg').textContent = '⚠ ' + err; return; }
+  $('gaf-msg').textContent = '✅ Admin password updated.';
+  $('gaf-new').value = ''; $('gaf-confirm').value = ''; $('gaf-code').value = '';
+  resetForgotSteps('gaf', 1);
+}
+
+/* ---------- admin panel: settings (change password) ---------- */
+async function saveAdminPassword() {
+  const prev = $('sp-prev').value, nw = $('sp-new').value, cf = $('sp-confirm').value;
+  const msg = $('sp-msg');
+  if (!prev || !nw) { msg.textContent = 'Enter the previous and the new password.'; return; }
+  if (nw.length < 4) { msg.textContent = 'New password must be at least 4 characters.'; return; }
+  if (nw !== cf) { msg.textContent = 'New password and confirmation do not match.'; return; }
+  const cur = (gData && gData.admin) || SEED_ADMIN;
+  if (!(await checkAdminPassword(cur, prev))) { msg.textContent = 'The previous password is not correct.'; return; }
+  const salt = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+  const hash = await sha256hex(salt + '|admin|' + nw);
+  try {
+    await writeCloud((base) => { base.admin = { salt: salt, hash: hash, mustChange: false }; }, 'chore: admin password changed');
+    msg.textContent = '✅ Password changed.';
+    $('sp-prev').value = ''; $('sp-new').value = ''; $('sp-confirm').value = '';
+    $('admin-notice').classList.add('hidden');
+  } catch (e) { msg.textContent = '⚠ ' + e.message; }
+}
+
+/* ---------- workers panel (admin) ---------- */
 let selectedWorkerId = null;
 function workerStats(rec, rate) {
   const totalHours = rec.entries.reduce((s, e) => s + e.hours, 0);
@@ -1370,7 +1604,7 @@ function workerStats(rec, rate) {
   return { totalHours, paidHours, paid, unpaid, last, count: rec.entries.length };
 }
 function renderWorkers() {
-  if (!myUser || myUser.role !== 'admin' || !gData) return;
+  if (!isAdmin || !gData) return;
   const users = gData.users;
   let totH = 0, totPaid = 0, totUnpaid = 0;
   const rows = users.map(u => {
@@ -1380,15 +1614,15 @@ function renderWorkers() {
     if (st.paid != null) totPaid += st.paid;
     if (st.unpaid != null) totUnpaid += st.unpaid;
     return '<div class="worker-row" data-wid="' + u.id + '">' +
-      '<div><span class="wname">' + esc(u.name) + '</span> <span class="hint">· ' + (u.role === 'admin' ? 'admin' : 'worker') + '</span>' +
+      '<div><span class="wname">' + esc(u.name) + '</span> <span class="hint">· worker</span>' +
       '<div class="wstats"><span><b>' + fmtNum(st.totalHours) + ' h</b> total</span><span>' + st.count + ' entries</span>' +
       (st.last ? '<span>last ' + fmtDate(st.last) + '</span>' : '') +
       (rec.paidUpToDate ? '<span>paid up to <b>' + fmtDate(rec.paidUpToDate) + '</b></span>' : '<span>not paid yet</span>') +
       (rec.hourlyRate != null ? '<span>' + fmtNum(rec.hourlyRate) + ' €/h</span>' : '') + '</div></div>' +
       '<button class="ghost" type="button">View details</button></div>';
   }).join('');
-  $('worker-list').innerHTML = rows || '<p class="hint">No accounts yet.</p>';
-  $('workers-overview').innerHTML = 'All accounts: <b>' + fmtNum(totH) + ' h</b> total · ' + users.length + ' account(s)' +
+  $('worker-list').innerHTML = rows || '<p class="hint">No worker accounts yet.</p>';
+  $('workers-overview').innerHTML = 'All workers: <b>' + fmtNum(totH) + ' h</b> total · ' + users.length + ' account(s)' +
     (totPaid > 0 ? ' · estimated paid <b>' + eurFmt(totPaid) + '</b>' : '') +
     (totUnpaid > 0.005 ? ' · estimated unpaid <b>' + eurFmt(totUnpaid) + '</b>' : '');
   if (selectedWorkerId && !users.some(u => u.id === selectedWorkerId)) {
@@ -1398,7 +1632,7 @@ function renderWorkers() {
 }
 function renderWorkerDetail(u, rec) {
   const st = workerStats(rec, rec.hourlyRate);
-  $('wd-name').textContent = u.name + (u.role === 'admin' ? ' (admin)' : '') + ' — work history';
+  $('wd-name').textContent = u.name + ' — work history';
   $('wd-stats').innerHTML =
     '<div class="wd-stat"><div class="hint">Total hours</div><b>' + fmtNum(st.totalHours) + ' h</b></div>' +
     '<div class="wd-stat"><div class="hint">Entries</div><b>' + st.count + '</b></div>' +
@@ -1436,7 +1670,6 @@ function workerDetailSave(mutate, message, afterMsg) {
   rec.updatedAt = new Date().toISOString();
   writeCloud((base) => { base.records[u.id] = rec; }, message)
     .then(() => {
-      gData = gData; // writeCloud already refreshed gData
       renderWorkers();
       selectWorker(u.id);
       setCloudStatus('synced');
@@ -1457,12 +1690,47 @@ $('gl-submit').addEventListener('click', doWorkerLogin);
 $('gl-pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') doWorkerLogin(); });
 $('gn-submit').addEventListener('click', doWorkerSignup);
 $('gn-pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') doWorkerSignup(); });
+$('gl-forgot').addEventListener('click', () => { $('gl-fa').classList.toggle('hidden'); $('glf-msg').textContent = ''; resetForgotSteps('glf', 1); });
+$('glf-send').addEventListener('click', glfSend);
+$('glf-verify').addEventListener('click', glfVerify);
+$('glf-save').addEventListener('click', glfSave);
 $('logout-btn').addEventListener('click', logout);
-/* ---------- events: admin key (packages tab) ---------- */
+/* ---------- events: app key (backup tab) ---------- */
 $('gh-connect').addEventListener('click', () => connectAdminKey($('gh-token').value));
 $('gh-token').addEventListener('keydown', (e) => { if (e.key === 'Enter') connectAdminKey($('gh-token').value); });
 $('gh-disconnect').addEventListener('click', () => disconnectAdminKey());
-/* ---------- events: workers panel ---------- */
+/* ---------- events: admin panel settings ---------- */
+$('sp-save').addEventListener('click', saveAdminPassword);
+$('af-send').addEventListener('click', () => {
+  $('af-msg').textContent = 'Sending code…';
+  sendResetCode('Admin').then(() => {
+    resetForgotSteps('af', 2);
+    $('af-msg').textContent = 'A code was sent to ' + RESET_EMAIL + ' — it stays valid for 10 minutes.';
+  }).catch(e => { $('af-msg').textContent = '⚠ ' + e.message; });
+});
+$('af-verify').addEventListener('click', () => {
+  const err = verifyResetCode($('af-code').value);
+  if (err) { $('af-msg').textContent = err; return; }
+  resetForgotSteps('af', 3);
+  $('af-msg').textContent = 'Code verified — set the new password below.';
+});
+$('af-save').addEventListener('click', async () => {
+  const nw = $('af-new').value, cf = $('af-confirm').value;
+  if (!nw || nw.length < 4) { $('af-msg').textContent = 'New password must be at least 4 characters.'; return; }
+  if (nw !== cf) { $('af-msg').textContent = 'Password and confirmation do not match.'; return; }
+  const err = await applyResetPassword({ kind: 'admin' }, nw);
+  if (err) { $('af-msg').textContent = '⚠ ' + err; return; }
+  $('af-msg').textContent = '✅ Admin password updated.';
+  $('af-new').value = ''; $('af-confirm').value = ''; $('af-code').value = '';
+  $('admin-notice').classList.add('hidden');
+  resetForgotSteps('af', 1);
+});
+$('admin-notice-btn').addEventListener('click', () => {
+  const el = $('sp-prev');
+  if (el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  el.focus();
+});
+/* ---------- events: workers panel (admin) ---------- */
 $('worker-list').addEventListener('click', (e) => {
   const row = e.target.closest('.worker-row');
   if (row) selectWorker(row.dataset.wid);
@@ -1495,11 +1763,11 @@ $('worker-detail').addEventListener('click', (e) => {
   workerDetailSave((rec2) => { rec2.entries = rec2.entries.filter(x => x.id !== en.id); },
     'chore: delete entry for ' + u.name, 'Entry deleted.');
 });
-
-document.querySelectorAll('.tab').forEach(btn => {
+/* ---------- events: app tabs ---------- */
+document.querySelectorAll('#main-tabs .tab').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b === btn));
-    ['new', 'log', 'income', 'report', 'packages', 'workers'].forEach(t => $('tab-' + t).classList.toggle('hidden', t !== btn.dataset.tab));
+    document.querySelectorAll('#main-tabs .tab').forEach(b => b.classList.toggle('active', b === btn));
+    ['new', 'log', 'income', 'report', 'backup'].forEach(t => $('tab-' + t).classList.toggle('hidden', t !== btn.dataset.tab));
   });
 });
 $('f-date').addEventListener('change', recalcHours);
