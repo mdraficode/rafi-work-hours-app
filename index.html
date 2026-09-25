@@ -1,0 +1,1558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Rafi's Work Hours</title>
+<style>
+  :root{
+    color-scheme:light;
+    --bg-top:#f3f9fd; --bg-bot:#e1edf6;
+    --card:#ffffff; --line:#d9e6f0; --ink:#122a3a; --muted:#5c7488;
+    --accent:#0e6ba8; --accent-2:#1287c7; --accent-soft:#e4f1fa;
+    --dbl:#9a5b06; --dbl-bg:#fdf3df; --dbl-line:#f2dcae;
+    --paid:#15803d; --paid-bg:#e3f4e9;
+    --danger:#b3261e;
+    --radius:16px; --shadow:0 12px 32px rgba(18,42,58,.08);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(1100px 500px at 85% -10%, #cde7f8 0%, rgba(205,231,248,0) 60%),
+      linear-gradient(165deg, var(--bg-top), var(--bg-bot));
+    min-height:100vh; font-size:15px; line-height:1.45;
+  }
+  .wrap{max-width:1000px;margin:0 auto;padding:22px 16px 60px}
+  header{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;box-shadow:var(--shadow)}
+  h1{font-size:20px;margin:0;letter-spacing:.2px}
+  .sub{margin:0;color:var(--muted);font-size:13px}
+  .pill{padding:8px 14px;border-radius:999px;background:#fff;border:1px solid var(--line);color:var(--muted);font-size:13px;box-shadow:var(--shadow);white-space:nowrap}
+  .pill.paid{background:var(--paid-bg);border-color:#bfe3cb;color:var(--paid);font-weight:600}
+  nav.tabs{display:flex;gap:6px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:6px;box-shadow:var(--shadow);margin-bottom:16px;flex-wrap:wrap}
+  .tab{border:0;background:transparent;padding:9px 14px;border-radius:10px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap}
+  .tab:hover{color:var(--accent);background:var(--accent-soft)}
+  .tab.active{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px;margin-bottom:16px}
+  .card h2{margin:0 0 4px;font-size:17px}
+  .hint{color:var(--muted);font-size:13px;margin:8px 0 14px}
+  .hidden{display:none!important}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+  select,input[type=text],input[type=number]{
+    font:inherit;color:var(--ink);background:#fbfdfe;border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;
+  }
+  select:focus,input:focus{outline:2px solid rgba(18,135,199,.35);border-color:var(--accent-2)}
+  .form{display:grid;grid-template-columns:1.15fr 1.15fr .75fr auto;gap:14px;align-items:end}
+  .hours-box{position:relative}
+  .hours-box input{padding-right:34px}
+  .hours-box .unit{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:700;font-size:13px}
+  button.primary{
+    font:inherit;font-weight:700;color:#fff;border:0;border-radius:12px;padding:11px 18px;cursor:pointer;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 6px 16px rgba(14,107,168,.25);
+  }
+  button.primary:hover{filter:brightness(1.06)}
+  button.ghost{font:inherit;font-weight:600;background:#fff;color:var(--accent);border:1px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer}
+  button.ghost:hover{background:var(--accent-soft)}
+  .badge{margin-top:14px;padding:10px 14px;border-radius:12px;font-size:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .badge.double{background:var(--dbl-bg);border:1px solid var(--dbl-line);color:var(--dbl)}
+  .badge.normal{background:#eef5fb;border:1px solid #d8e7f3;color:#35566e}
+  details.holidayref{margin-top:14px;font-size:13px;color:var(--muted)}
+  details.holidayref summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  details.holidayref ul{margin:8px 0 2px;padding-left:20px}
+  details.holidayref li{margin-bottom:3px}
+  .log-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .log-summary{font-size:14px;color:var(--muted)}
+  .log-summary b{color:var(--ink)}
+  .entry{display:grid;grid-template-columns:190px 1fr 78px 92px auto;gap:12px;align-items:center;
+    border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:8px;background:#fff}
+  .entry.paid{opacity:.5;background:#f2f5f7}
+  .e-date b{display:block;font-size:14px;margin-bottom:3px}
+  .e-tag{font-size:11.5px;color:var(--dbl);background:var(--dbl-bg);border:1px solid var(--dbl-line);padding:1px 7px;border-radius:999px;white-space:nowrap;display:inline-block}
+  .e-tag.reg{background:#eef2f6;border-color:#dfe7ee;color:var(--muted)}
+  .e-tour{font-weight:600}
+  .e-hours{font-weight:800;font-variant-numeric:tabular-nums}
+  .chip{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap}
+  .chip.paid{background:var(--paid-bg);color:var(--paid)}
+  .chip.open{background:#eef2f6;color:var(--muted)}
+  .e-actions{display:flex;gap:6px;justify-content:flex-end}
+  .mini{font:inherit;font-size:12.5px;font-weight:600;border-radius:8px;padding:6px 10px;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--accent)}
+  .mini:hover{background:var(--accent-soft)}
+  .mini.danger{color:var(--danger)}
+  .mini.danger:hover{background:#fbe9e8;border-color:#efc5c3}
+  .empty{padding:30px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:12px}
+  .range{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:end;margin-bottom:12px}
+  .range .dash{padding-bottom:10px;color:var(--muted)}
+  .presets{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+  .presets button{font-size:12.5px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:14px}
+  .stat{background:#f6fafd;border:1px solid var(--line);border-radius:14px;padding:14px}
+  .stat span{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px}
+  .stat b{font-size:24px}
+  .stat.hero b{color:var(--accent)}
+  .break{font-size:13px;color:var(--muted);margin-bottom:14px}
+  .rate{display:flex;align-items:center;gap:10px;font-weight:600;font-size:14px;margin-bottom:12px;flex-wrap:wrap}
+  .rate input{width:140px}
+  .total-row{display:flex;justify-content:space-between;align-items:center;gap:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;border-radius:14px;padding:16px 20px;font-size:15px;font-weight:700;flex-wrap:wrap}
+  .total-row b{font-size:26px;font-variant-numeric:tabular-nums}
+  .pkg-row{display:grid;grid-template-columns:28px 1fr 110px 38px;gap:10px;align-items:center;margin-bottom:8px}
+  .pkg-idx{color:var(--muted);font-weight:700;text-align:center}
+  .pkg-add{display:grid;grid-template-columns:1fr 110px auto;gap:10px;margin:14px 0 20px;padding-top:14px;border-top:1px dashed var(--line);align-items:center}
+  .backup{display:flex;gap:8px;flex-wrap:wrap}
+  footer{text-align:center;color:var(--muted);font-size:12.5px;margin-top:8px}
+  #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:#12324a;color:#fff;padding:11px 18px;border-radius:12px;font-size:14px;opacity:0;pointer-events:none;transition:all .25s;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:90vw;text-align:center;z-index:50}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  /* --- theme toggle & header --- */
+  .head-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .theme-btn{width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:var(--card);cursor:pointer;font-size:18px;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;padding:0}
+  .theme-btn:hover{background:var(--accent-soft)}
+  .pill.cloud{font-weight:600}
+  .pill.cloud.ok{background:var(--paid-bg);border-color:#bfe3cb;color:var(--paid)}
+  .pill.cloud.warn{background:var(--dbl-bg);border-color:var(--dbl-line);color:var(--dbl)}
+  /* --- report --- */
+  .report-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .report{border:1px solid var(--line);border-radius:14px;padding:24px;margin-top:16px;background:var(--card)}
+  .rep-head{border-bottom:2px solid var(--accent);padding-bottom:12px;margin-bottom:6px}
+  .rep-title{font-size:18px;font-weight:800}
+  .rep-meta{color:var(--muted);font-size:13px;margin-top:4px}
+  .report h3{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--accent);margin:20px 0 8px}
+  .rep-table{width:100%;border-collapse:collapse;font-size:13.5px}
+  .rep-table th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:2px solid var(--line);padding:6px 8px}
+  .rep-table td{border-bottom:1px solid var(--line);padding:6px 8px;vertical-align:top}
+  .rep-table.kv td:first-child{color:var(--muted);width:45%}
+  .rep-table tr.rp-paid td{opacity:.55}
+  .rep-foot{margin-top:18px;color:var(--muted);font-size:12px;text-align:center}
+  /* --- dark theme (deep, low-glare, easy on the eyes) --- */
+  :root[data-theme="dark"]{
+    color-scheme:dark;
+    --bg-top:#070c11; --bg-bot:#04070b;
+    --card:#0b1219; --line:#1b2937; --ink:#cfdce6; --muted:#7e94a7;
+    --accent:#2e8fd0; --accent-2:#1b6ca8; --accent-soft:#101d29;
+    --dbl:#d9a44f; --dbl-bg:#1f180c; --dbl-line:#382d15;
+    --paid:#4cb877; --paid-bg:#0d2015;
+    --danger:#e07b74;
+    --shadow:0 14px 34px rgba(0,0,0,.55);
+  }
+  :root[data-theme="dark"] body{
+    background:
+      radial-gradient(1100px 520px at 85% -10%, #0c1d2c 0%, rgba(12,29,44,0) 60%),
+      linear-gradient(165deg, var(--bg-top), var(--bg-bot));
+  }
+  :root[data-theme="dark"] select,
+  :root[data-theme="dark"] input[type=text],
+  :root[data-theme="dark"] input[type=number]{background:#0a1016}
+  :root[data-theme="dark"] .stat{background:#0a1016}
+  :root[data-theme="dark"] .badge.normal{background:#0f1a25;border-color:#1c3247;color:#a4bcca}
+  :root[data-theme="dark"] .entry{background:transparent}
+  :root[data-theme="dark"] .entry.paid{background:#080e14}
+  :root[data-theme="dark"] .chip.open{background:#121e2a}
+  :root[data-theme="dark"] .e-tag.reg{background:#121e2a;border-color:#21374b;color:#7e94a7}
+  :root[data-theme="dark"] button.ghost,
+  :root[data-theme="dark"] .mini{background:#0a1016}
+  :root[data-theme="dark"] .mini:hover{background:#101d29}
+  :root[data-theme="dark"] .mini.danger:hover{background:#281517;border-color:#472426}
+  :root[data-theme="dark"] .pill,
+  :root[data-theme="dark"] .theme-btn{background:#0a1016}
+  :root[data-theme="dark"] .theme-btn:hover{background:#101d29}
+  :root[data-theme="dark"] .empty{background:transparent}
+  /* --- login gate --- */
+  .gate{min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:48px 16px}
+  .gate-card{max-width:540px;width:100%}
+  .gate-tabs{margin-bottom:18px}
+  .gate-tabs .tab{flex:1}
+  .hint.err{color:var(--danger);font-weight:600}
+  /* --- workers panel --- */
+  .worker-row{display:grid;grid-template-columns:1fr auto;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;margin-bottom:10px;cursor:pointer;align-items:center;background:var(--card)}
+  .worker-row:hover{border-color:var(--accent)}
+  .worker-row .wname{font-weight:700}
+  .wstats{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:4px}
+  .wd-stats{display:flex;gap:10px;flex-wrap:wrap}
+  .wd-stat{background:var(--accent-soft);border-radius:10px;padding:10px 14px;min-width:105px}
+  .wd-stat b{font-size:15px}
+  /* --- print (only the report, always light) --- */
+  @media print {
+    body.has-report *{visibility:hidden}
+    body.has-report #report-area, body.has-report #report-area *{visibility:visible}
+    body.has-report #report-area{position:absolute;left:0;top:0;width:100%}
+    body.has-report #report-area .report{border:none;padding:0;margin:0;background:#fff}
+    body.has-report #report-area .rep-table th,
+    body.has-report #report-area .rep-table td{color:#111;border-color:#ccc}
+    body.has-report #report-area .rep-title{color:#111}
+    body.has-report #report-area .rep-meta,
+    body.has-report #report-area .rep-foot,
+    body.has-report #report-area .report h3,
+    body.has-report #report-area .rep-table.kv td:first-child{color:#555}
+  }
+  @media (max-width:760px){
+    .form{grid-template-columns:1fr}
+    .range{grid-template-columns:1fr}
+    .range .dash{display:none}
+    .entry{grid-template-columns:1fr 1fr}
+    .e-date,.e-tour{grid-column:1/-1}
+    .e-actions{grid-column:1/-1;justify-content:flex-start}
+    .pkg-row{grid-template-columns:22px 1fr 92px 34px}
+    .pkg-add{grid-template-columns:1fr auto}
+  }
+</style>
+</head>
+<body>
+  <!-- ============ LOGIN GATE ============ -->
+  <div id="gate" class="gate hidden">
+    <div class="card gate-card">
+      <div class="brand" style="margin-bottom:16px">
+        <div class="logo">❄</div>
+        <div>
+          <h1 style="font-size:22px">Rafi's Work Hours</h1>
+          <p class="sub">Log in to your work records</p>
+        </div>
+      </div>
+      <div id="gate-token" class="hidden">
+        <h2 style="font-size:15px">Step 1 · Connect to the shared record (once per device)</h2>
+        <p class="hint">Every worker's log is stored in one shared private record. Paste the <b>app key</b> (the admin has it) —
+          it is stored only in this browser, on this device.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          <input id="gate-key" type="password" placeholder="Paste the app key (ghp_…)" style="flex:1;min-width:200px" autocomplete="off" spellcheck="false">
+          <button id="gate-key-connect" class="primary" type="button">Connect</button>
+        </div>
+        <p id="gate-key-msg" class="hint" style="margin-top:8px"></p>
+      </div>
+      <div id="gate-login" class="hidden">
+        <nav class="tabs gate-tabs" role="tablist" aria-label="Login">
+          <button class="tab active" data-gtab="login" role="tab">Worker Login</button>
+          <button class="tab" data-gtab="newworker" role="tab">New Worker</button>
+          <button class="tab" data-gtab="admin" role="tab">Admin</button>
+        </nav>
+        <div id="gpane-login">
+          <div class="field"><label for="gl-name">Worker name</label><input id="gl-name" type="text" autocomplete="off"></div>
+          <div class="field"><label for="gl-pass">Password</label><input id="gl-pass" type="password"></div>
+          <button id="gl-submit" class="primary" type="button" style="width:100%">Log in</button>
+        </div>
+        <div id="gpane-newworker" class="hidden">
+          <p class="hint" style="margin-top:0">Create your own account. Next time, log in with the same name and password — you will see your own work history.</p>
+          <div class="field"><label for="gn-name">Worker name</label><input id="gn-name" type="text" placeholder="Your full name" autocomplete="off"></div>
+          <div class="field"><label for="gn-pass">Password</label><input id="gn-pass" type="password" placeholder="At least 4 characters"></div>
+          <button id="gn-submit" class="primary" type="button" style="width:100%">Create account &amp; log in</button>
+        </div>
+        <div id="gpane-admin" class="hidden"></div>
+        <p id="gate-err" class="hint err" style="margin-top:12px;min-height:1.2em"></p>
+      </div>
+    </div>
+  </div>
+
+<div class="wrap" id="app">
+  <header>
+    <div class="brand">
+      <div class="logo">❄</div>
+      <div>
+        <h1 id="app-title">Rafi's Work Hours</h1>
+        <p class="sub">Daily tour work hours &amp; income</p>
+      </div>
+    </div>
+    <div class="head-right">
+      <div id="paid-pill" class="pill"></div>
+      <div id="cloud-pill" class="pill cloud">🔌 Connect to GitHub</div>
+      <button id="logout-btn" class="ghost" type="button" title="Log out">↩ Log out</button>
+      <button id="theme-toggle" class="theme-btn" type="button" aria-label="Toggle dark/light theme" title="Switch to dark theme">🌙</button>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button class="tab active" data-tab="new" role="tab">＋ New entry</button>
+    <button class="tab" data-tab="log" role="tab">📋 Work log</button>
+    <button class="tab" data-tab="income" role="tab">💶 Total income</button>
+    <button class="tab" data-tab="report" role="tab">📄 Reports</button>
+    <button class="tab" data-tab="packages" role="tab">🧳 Tour packages</button>
+    <button class="tab" data-tab="workers" role="tab" id="tabbtn-workers" hidden>👥 Workers</button>
+  </nav>
+
+  <!-- ============ NEW ENTRY ============ -->
+  <section id="tab-new" class="card">
+    <h2>Log a working day</h2>
+    <p class="hint">Sequence: <b>Date → Tour package → Work hours</b>. Work hours are pre-filled with the package default —
+      Sundays and Finnish public holidays are doubled automatically <b>❄</b> — but every field stays editable.</p>
+    <div class="form">
+      <div class="field"><label for="f-date">1 · Date</label><select id="f-date"></select></div>
+      <div class="field"><label for="f-tour">2 · Tour package</label><select id="f-tour"></select></div>
+      <div class="field"><label for="f-hours">3 · Work hours</label>
+        <div class="hours-box"><input id="f-hours" type="number" min="0" step="0.5" inputmode="decimal"><span class="unit">h</span></div>
+      </div>
+      <div class="field"><label>&nbsp;</label><button id="f-add" class="primary">Add to log</button></div>
+    </div>
+    <div id="day-badge" class="badge normal"></div>
+    <details class="holidayref">
+      <summary>Which days count as double (❄)?</summary>
+      <ul>
+        <li>All <b>Sundays</b></li>
+        <li>New Year's Day (1.1) · Epiphany (6.1)</li>
+        <li>Good Friday · Easter Sunday (moveable — Easter 2026: 5.4)</li>
+        <li>May Day (1.5)</li>
+        <li>Midsummer's Eve (Friday) &amp; Midsummer's Day (Saturday) — midsummer 2026: 19.–20.6</li>
+        <li>All Saints' Day (Saturday between 31.10 and 6.11) — 2026: 31.10</li>
+        <li>Independence Day (6.12)</li>
+        <li>Christmas Eve (24.12) · Christmas Day (25.12) · Second Day of Christmas (26.12)</li>
+      </ul>
+      <p style="margin:8px 0 0">Moveable dates are calculated automatically for any year. Easter Monday, Ascension and Pentecost are
+      <i>not</i> Finnish public holidays, so they are not doubled — if your employer pays them double, just type the hours in manually.</p>
+    </details>
+  </section>
+
+  <!-- ============ WORK LOG ============ -->
+  <section id="tab-log" class="card hidden">
+    <h2>Work log</h2>
+    <div class="log-head">
+      <div id="log-summary" class="log-summary"></div>
+      <button id="reset-paid" class="ghost">↺ Reset paid status</button>
+    </div>
+    <p class="hint">Press <b>Mark as paid</b> on any day — every logged day up to and including that date turns grey,
+      showing that those hours have been paid. <b>❄</b> = Sunday / Finnish public holiday (double hours).</p>
+    <div id="log-list"></div>
+  </section>
+
+  <!-- ============ TOTAL INCOME ============ -->
+  <section id="tab-income" class="card hidden">
+    <h2>Total income</h2>
+    <p class="hint">Pick a date range — the total logged work hours inside it appear below. Add your hourly income and the total is calculated.</p>
+    <div class="range">
+      <div class="field"><label for="i-from">From</label><select id="i-from"></select></div>
+      <span class="dash">–</span>
+      <div class="field"><label for="i-to">Until</label><select id="i-to"></select></div>
+    </div>
+    <div class="presets">
+      <button class="ghost" data-range="this-month">This month</button>
+      <button class="ghost" data-range="last-month">Last month</button>
+      <button class="ghost" data-range="this-year">This year</button>
+      <button class="ghost" data-range="last-30">Last 30 days</button>
+      <button class="ghost" data-range="all">All logged</button>
+    </div>
+    <div class="stats">
+      <div class="stat"><span>Working days</span><b id="i-days">0</b></div>
+      <div class="stat hero"><span>Total work hours</span><b id="i-hours">0 h</b></div>
+    </div>
+    <div id="i-break" class="break"></div>
+    <label class="rate" for="i-rate">Hourly income (€ / h)
+      <input id="i-rate" type="number" min="0" step="0.5" inputmode="decimal" placeholder="e.g. 20">
+    </label>
+    <div class="total-row"><span>Total income</span><b id="i-total">—</b></div>
+  </section>
+
+  <!-- ============ REPORTS ============ -->
+  <section id="tab-report" class="card hidden">
+    <h2>Generate report</h2>
+    <p class="hint">Pick a date range and generate a structured document of everything logged in that period:
+      overview, monthly summary, day-by-day details and a per-tour breakdown. Print it to PDF or download it as HTML / CSV.</p>
+    <div class="range">
+      <div class="field"><label for="r-from">From</label><select id="r-from"></select></div>
+      <span class="dash">–</span>
+      <div class="field"><label for="r-to">Until</label><select id="r-to"></select></div>
+    </div>
+    <div class="presets">
+      <button class="ghost" data-range-report="this-month">This month</button>
+      <button class="ghost" data-range-report="last-month">Last month</button>
+      <button class="ghost" data-range-report="this-year">This year</button>
+      <button class="ghost" data-range-report="last-30">Last 30 days</button>
+      <button class="ghost" data-range-report="all">All logged</button>
+      <button id="r-generate" class="primary">📄 Generate report</button>
+    </div>
+    <div id="report-area"></div>
+    <div id="report-actions" class="report-actions hidden">
+      <button id="r-print" class="ghost">🖨 Print / Save as PDF</button>
+      <button id="r-html" class="ghost">⬇ Download HTML</button>
+      <button id="r-csv" class="ghost">⬇ Download CSV</button>
+    </div>
+  </section>
+
+  <!-- ============ WORKERS (admin only) ============ -->
+  <section id="tab-workers" class="card hidden">
+    <h2>Workers</h2>
+    <div id="workers-overview" class="hint"></div>
+    <div id="worker-list" style="margin-top:14px"></div>
+    <div id="worker-detail" class="hidden" style="margin-top:18px;padding-top:16px;border-top:1px dashed var(--line)">
+      <h3 id="wd-name" style="margin-bottom:8px"></h3>
+      <div id="wd-stats"></div>
+      <div class="wd-actions" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:14px 0">
+        <span class="hint">Mark paid up to</span>
+        <input id="wd-paid" type="date">
+        <button id="wd-setpaid" class="ghost" type="button">Mark paid</button>
+        <span class="hint" style="margin-left:12px">Hourly rate (€/h)</span>
+        <input id="wd-rate" type="number" min="0" step="0.5" style="width:90px">
+        <button id="wd-setrate" class="ghost" type="button">Set rate</button>
+        <button id="wd-unpaid" class="ghost" type="button" style="margin-left:12px">↺ Reset paid status</button>
+      </div>
+      <div id="wd-log"></div>
+    </div>
+  </section>
+
+  <!-- ============ PACKAGES ============ -->
+  <section id="tab-packages" class="card hidden">
+    <h2>Tour packages</h2>
+    <p class="hint">Add, rename, re-price or remove packages — updates apply to the default hours in the New entry form.
+      Logged entries always keep the hours they were saved with.</p>
+    <div id="pkg-list"></div>
+    <div class="pkg-add">
+      <input id="p-name" type="text" maxlength="60" placeholder="New package name">
+      <input id="p-hours" type="number" min="0.5" step="0.5" placeholder="hrs">
+      <button id="p-add" class="primary">Add package</button>
+    </div>
+    <h2 style="font-size:15px">GitHub backup <span id="gh-status" class="hint" style="font-weight:400">○ not connected</span></h2>
+    <p class="hint">When connected, every change is automatically saved to your repository <b>mdraficode/rafi-work-hours</b>
+      (file <code>data/records.json</code>) a moment after you make it — so your work log survives refreshes, app updates, new browsers
+      and even cleared browser data. Entries are only removed from the repository when you delete them here in the Work log.
+      Connect once below with a GitHub personal access token — it is stored in <b>this browser only</b>, never in the page or the repo.</p>
+    <div class="gh-connect" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <input id="gh-token" type="password" placeholder="Paste your GitHub token (ghp_…)" style="flex:1;min-width:200px" autocomplete="off" spellcheck="false">
+      <button id="gh-connect" class="primary" type="button">Connect</button>
+      <button id="gh-disconnect" class="ghost" type="button" hidden>Disconnect</button>
+    </div>
+    <p id="gh-msg" class="hint" style="margin-top:8px"></p>
+    <h2 style="font-size:15px;margin-top:18px">Manual backup</h2>
+    <p class="hint">Export/import work as an extra manual backup — useful for moving data between devices before connecting GitHub.</p>
+    <div class="backup">
+      <button id="b-export" class="ghost">⬇ Export data (JSON)</button>
+      <button id="b-import" class="ghost">⬆ Import data (JSON)</button>
+      <input id="b-file" type="file" accept="application/json,.json" hidden>
+    </div>
+  </section>
+
+  <footer>Data auto-saves to the shared GitHub record · ❄ Rafi's Work Hours</footer>
+</div>
+<div id="toast" role="status"></div>
+
+<script>
+'use strict';
+/* ================= PURE-START (date + Finnish holiday logic, no DOM) ================= */
+const pad2 = n => String(n).padStart(2, '0');
+const keyOf = d => d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+const parseKey = k => { const p = k.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); };
+const DAY_S = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const fmtNum = x => String(Number(Number(x).toFixed(2)));
+const fmtDate = k => { const p = k.split('-').map(Number); return p[2] + '.' + p[1] + '.' + p[0]; };
+const fmtDateLong = k => DAY_S[parseKey(k).getDay()] + ', ' + fmtDate(k);
+const EUR = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' });
+const eurFmt = x => EUR.format(x);
+const parseNum = v => { const x = parseFloat(String(v).replace(',', '.')); return Number.isFinite(x) ? x : NaN; };
+
+/* Easter (anonymous Gregorian computus) */
+function easterSunday(year) {
+  const a = year % 19, b = Math.floor(year / 100), c = year % 100;
+  const d = Math.floor(b / 4), e = b % 4;
+  const f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4), k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+}
+
+/* Finnish national public holidays (rules per Finnish law; works for any year) */
+const holidayCache = {};
+function holidaysForYear(year) {
+  if (holidayCache[year]) return holidayCache[year];
+  const map = {};
+  const add = (dt, name) => { map[keyOf(dt)] = name; };
+  add(new Date(year, 0, 1), "New Year's Day");
+  add(new Date(year, 0, 6), 'Epiphany');
+  const easter = easterSunday(year);
+  const goodFriday = new Date(easter); goodFriday.setDate(easter.getDate() - 2);
+  add(goodFriday, 'Good Friday');
+  add(easter, 'Easter Sunday');
+  add(new Date(year, 4, 1), 'May Day');
+  const mid = new Date(year, 5, 20);              // Midsummer's Day: Saturday 20.-26.6
+  while (mid.getDay() !== 6) mid.setDate(mid.getDate() + 1);
+  const midEve = new Date(mid); midEve.setDate(mid.getDate() - 1);
+  add(midEve, "Midsummer's Eve");
+  add(mid, "Midsummer's Day");
+  const saints = new Date(year, 9, 31);           // All Saints' Day: Saturday 31.10.-6.11
+  while (saints.getDay() !== 6) saints.setDate(saints.getDate() + 1);
+  add(saints, "All Saints' Day");
+  add(new Date(year, 11, 6), 'Independence Day');
+  add(new Date(year, 11, 24), 'Christmas Eve');
+  add(new Date(year, 11, 25), 'Christmas Day');
+  add(new Date(year, 11, 26), 'Second Day of Christmas');
+  return (holidayCache[year] = map);
+}
+const holidayName = k => holidaysForYear(Number(k.slice(0, 4)))[k] || '';
+function doubleInfo(k) {
+  const h = holidayName(k);
+  if (h) return { double: true, label: h };
+  if (parseKey(k).getDay() === 0) return { double: true, label: 'Sunday' };
+  return { double: false, label: '' };
+}
+/* All selectable dates: 2 years in the past … 1 year ahead */
+function dateRangeOptions() {
+  const now = new Date();
+  const y0 = now.getFullYear() - 2, y1 = now.getFullYear() + 1;
+  const years = {};
+  const end = new Date(y1, 11, 31);
+  for (let d = new Date(y0, 0, 1); d <= end; d.setDate(d.getDate() + 1)) {
+    const k = keyOf(d);
+    const info = doubleInfo(k);
+    let label = DAY_S[d.getDay()] + ' ' + d.getDate() + '.' + (d.getMonth() + 1) + '.' + d.getFullYear();
+    if (info.double) label += info.label === 'Sunday' ? ' ❄ ×2' : ' ❄ ' + info.label + ' ×2';
+    (years[d.getFullYear()] = years[d.getFullYear()] || []).push({ k, label });
+  }
+  return years;
+}
+/* ================= PURE-END ================= */
+
+const STORAGE_KEY = 'arctic-tour-time-logger-v1';
+const GH_TOKEN_KEY = 'rafi-work-hours-gh-token';
+const SESSION_KEY = 'rafi-work-hours-session';
+const CACHE_PREFIX = 'rafi-work-hours-cache-';
+const GH_REPO = 'mdraficode/rafi-work-hours';
+const GH_FILE = 'data/records.json';
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const newId = () => Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+
+const DEFAULT_TOURS = [
+  { id: 't1', name: 'Meeting Santa', hours: 5 },
+  { id: 't2', name: 'Husky Reindeer Aurora BBQ', hours: 7 },
+  { id: 't3', name: 'Ranua Zoo', hours: 5.5 },
+  { id: 't4', name: 'Snowshoeing', hours: 3 },
+  { id: 't5', name: 'Aurora BBQ 2 Places', hours: 3.5 },
+  { id: 't6', name: 'Arctic Husky Adventure', hours: 3 },
+  { id: 't7', name: 'Arctic Snow Hotel', hours: 2 }
+];
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (!s || !Array.isArray(s.tours) || !Array.isArray(s.entries)) return null;
+    return s;
+  } catch (e) { return null; }
+}
+
+function emptyRecord() { return { entries: [], paidUpToDate: null, hourlyRate: null, updatedAt: null }; }
+function normalizeRecord(r) {
+  return {
+    entries: Array.isArray(r.entries) ? r.entries.filter(x => x && x.date && x.tourName && Number.isFinite(Number(x.hours))).map(x => ({
+      id: String(x.id || newId()), date: String(x.date), tourId: String(x.tourId || ''), tourName: String(x.tourName),
+      hours: Math.round(Number(x.hours) * 100) / 100
+    })) : [],
+    paidUpToDate: typeof r.paidUpToDate === 'string' ? r.paidUpToDate : null,
+    hourlyRate: (r.hourlyRate != null && Number.isFinite(Number(r.hourlyRate))) ? Number(r.hourlyRate) : null,
+    updatedAt: typeof r.updatedAt === 'string' ? r.updatedAt : null
+  };
+}
+let state = emptyRecord();
+let gTours = DEFAULT_TOURS.map(t => ({ ...t }));
+let gData = null;
+let myUser = null;
+let cloudLoaded = false;
+const brand = () => myUser ? myUser.name + "'s Work Hours" : "Rafi's Work Hours";
+function writeCache() {
+  if (!myUser) return;
+  try { localStorage.setItem(CACHE_PREFIX + myUser.id, JSON.stringify(state)); } catch (e) {}
+}
+function loadCache(userId) {
+  try {
+    const raw = localStorage.getItem(CACHE_PREFIX + userId);
+    return raw ? normalizeRecord(JSON.parse(raw)) : null;
+  } catch (e) { return null; }
+}
+const save = () => {
+  state.updatedAt = new Date().toISOString();
+  writeCache();
+  scheduleCloudPush();
+};
+
+let toastTimer = null;
+function toast(msg) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+/* ---------- rendering ---------- */
+function fillDateSelect(sel, years, selected) {
+  sel.innerHTML = '';
+  const ph = document.createElement('option');
+  ph.value = '';
+  ph.textContent = '— choose date —';
+  sel.appendChild(ph);
+  for (const y of Object.keys(years).sort()) {
+    const og = document.createElement('optgroup');
+    og.label = y;
+    for (const item of years[y]) {
+      const o = document.createElement('option');
+      o.value = item.k;
+      o.textContent = item.label;
+      og.appendChild(o);
+    }
+    sel.appendChild(og);
+  }
+  if (selected) for (const o of sel.options) if (o.value === selected) { sel.value = selected; break; }
+}
+function setSelectIfPresent(sel, k) {
+  if (!k) return;
+  for (const o of sel.options) if (o.value === k) { sel.value = k; return; }
+}
+function fillTourSelect() {
+  const sel = $('f-tour');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">— choose package —</option>' + gTours.map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
+  for (const o of sel.options) if (o.value === prev) { sel.value = prev; break; }
+  recalcHours();
+}
+function recalcHours() {
+  const tour = gTours.find(t => t.id === $('f-tour').value);
+  const key = $('f-date').value;
+  const base = tour ? tour.hours : 0;
+  const info = key ? doubleInfo(key) : { double: false, label: '' };
+  const def = info.double ? base * 2 : base;
+  $('f-hours').value = def > 0 ? fmtNum(def) : '';
+  const badge = $('day-badge');
+  if (!tour) {
+    badge.className = 'badge normal';
+    badge.innerHTML = 'Pick a date and a package — default hours fill in automatically (❄ Sundays &amp; Finnish holidays count double)';
+  } else if (info.double) {
+    badge.className = 'badge double';
+    badge.innerHTML = `❄ <b>${esc(info.label)}</b> — double day: ${fmtNum(base)} h × 2 = <b>${fmtNum(def)} h</b>`;
+  } else {
+    badge.className = 'badge normal';
+    badge.innerHTML = `Regular day — default <b>${fmtNum(base)} h</b> (you can edit any field)`;
+  }
+}
+function updatePaidPill() {
+  const p = $('paid-pill');
+  if (state.paidUpToDate) {
+    p.className = 'pill paid';
+    p.innerHTML = `✅ Paid up to <b>${fmtDate(state.paidUpToDate)}</b>`;
+  } else {
+    p.className = 'pill';
+    p.textContent = 'No paid mark yet';
+  }
+}
+function renderLog() {
+  const list = $('log-list');
+  const paidUntil = state.paidUpToDate;
+  const total = state.entries.reduce((s, e) => s + e.hours, 0);
+  $('log-summary').innerHTML = state.entries.length
+    ? `<b>${state.entries.length}</b> work day${state.entries.length > 1 ? 's' : ''} · <b>${fmtNum(total)} h</b> logged in total`
+    : '';
+  if (!state.entries.length) {
+    list.innerHTML = '<div class="empty">No work days logged yet — add your first tour from the <b>＋ New entry</b> tab.</div>';
+    return;
+  }
+  const sorted = [...state.entries].sort((a, b) => b.date.localeCompare(a.date));
+  list.innerHTML = sorted.map(e => {
+    const info = doubleInfo(e.date);
+    const isPaid = !!(paidUntil && e.date <= paidUntil);
+    return `<div class="entry${isPaid ? ' paid' : ''}">
+      <div class="e-date"><b>${fmtDateLong(e.date)}</b>${info.double
+        ? `<span class="e-tag">❄ ${esc(info.label)}</span>`
+        : '<span class="e-tag reg">regular</span>'}</div>
+      <div class="e-tour">${esc(e.tourName)}</div>
+      <div class="e-hours">${fmtNum(e.hours)} h</div>
+      <div class="e-status"><span class="chip ${isPaid ? 'paid' : 'open'}">${isPaid ? 'Paid' : 'Open'}</span></div>
+      <div class="e-actions">
+        ${isPaid ? '' : `<button class="mini" data-act="paid" data-id="${e.id}">Mark as paid</button>`}
+        <button class="mini danger" data-act="del" data-id="${e.id}" title="Delete entry">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function renderIncome() {
+  let from = $('i-from').value, to = $('i-to').value;
+  if (from && to && from > to) {
+    $('i-from').value = to; $('i-to').value = from;
+    from = $('i-from').value; to = $('i-to').value;
+  }
+  const inR = state.entries.filter(x => x.date >= from && x.date <= to);
+  const total = inR.reduce((s, x) => s + x.hours, 0);
+  const days = new Set(inR.map(x => x.date)).size;
+  const dbl = inR.filter(x => doubleInfo(x.date).double).reduce((s, x) => s + x.hours, 0);
+  $('i-days').textContent = String(days);
+  $('i-hours').textContent = fmtNum(total) + ' h';
+  $('i-break').textContent = inR.length
+    ? `Range ${fmtDate(from)} – ${fmtDate(to)} · of which ❄ double days: ${fmtNum(dbl)} h · regular days: ${fmtNum(total - dbl)} h`
+    : 'No logged days in this range yet.';
+  const rate = parseNum($('i-rate').value);
+  $('i-total').textContent = (Number.isFinite(rate) && rate > 0) ? eurFmt(total * rate) : 'set hourly income';
+}
+function renderPackages() {
+  $('pkg-list').innerHTML = gTours.map((t, i) => `
+    <div class="pkg-row">
+      <span class="pkg-idx">${i + 1}.</span>
+      <input class="pkg-name" data-i="${i}" type="text" maxlength="60" value="${esc(t.name)}" aria-label="Package name">
+      <input class="pkg-hours" data-i="${i}" type="number" min="0" step="0.5" value="${t.hours}" aria-label="Default hours">
+      <button class="mini danger" data-del="${i}" title="Delete package">✕</button>
+    </div>`).join('');
+}
+function renderAll() { updatePaidPill(); renderLog(); renderIncome(); renderPackages(); renderWorkers(); }
+
+/* ---------- actions ---------- */
+function addEntry() {
+  const date = $('f-date').value;
+  const tour = gTours.find(t => t.id === $('f-tour').value);
+  const h = parseNum($('f-hours').value);
+  if (!tour) { toast('Choose a tour package first.'); return; }
+  if (!(h > 0)) { toast('Enter the work hours for this day.'); return; }
+  const hours = Math.round(h * 100) / 100;
+  state.entries.push({ id: newId(), date, tourId: tour.id, tourName: tour.name, hours });
+  save(); renderLog();
+  toast(`Logged ${fmtNum(hours)} h on ${fmtDateLong(date)} — ${tour.name}`);
+  // clear the form so the next entry starts from a clean slate
+  $('f-date').value = '';
+  $('f-tour').value = '';
+  $('f-hours').value = '';
+  recalcHours();
+  $('f-date').focus();
+}
+function onLogClick(e) {
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  const entry = state.entries.find(x => x.id === btn.dataset.id);
+  if (!entry) return;
+  if (btn.dataset.act === 'paid') {
+    if (!state.paidUpToDate || entry.date > state.paidUpToDate) state.paidUpToDate = entry.date;
+    save(); renderLog(); updatePaidPill();
+    toast(`Paid up to ${fmtDate(entry.date)} — all days before it are now greyed out.`);
+  } else if (btn.dataset.act === 'del') {
+    if (!confirm(`Delete this entry?\n${fmtDateLong(entry.date)} — ${entry.tourName}, ${fmtNum(entry.hours)} h`)) return;
+    state.entries = state.entries.filter(x => x.id !== entry.id);
+    save(); renderLog();
+  }
+}
+function applyPreset(r, fromSel, toSel, after) {
+  const now = new Date();
+  let from = null, to = null;
+  if (r === 'this-month') { from = new Date(now.getFullYear(), now.getMonth(), 1); to = now; }
+  else if (r === 'last-month') { from = new Date(now.getFullYear(), now.getMonth() - 1, 1); to = new Date(now.getFullYear(), now.getMonth(), 0); }
+  else if (r === 'this-year') { from = new Date(now.getFullYear(), 0, 1); to = now; }
+  else if (r === 'last-30') { to = now; from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29); }
+  else if (r === 'all') {
+    if (!state.entries.length) { toast('Nothing logged yet.'); return; }
+    const ds = state.entries.map(x => x.date).sort();
+    from = parseKey(ds[0]); to = parseKey(ds[ds.length - 1]);
+  }
+  setSelectIfPresent(fromSel, keyOf(from));
+  setSelectIfPresent(toSel, keyOf(to));
+  if (after) after();
+}
+function onPkgChange(e) {
+  const el = e.target;
+  const tour = gTours[Number(el.dataset.i)];
+  if (!tour) return;
+  if (el.classList.contains('pkg-name')) {
+    const v = el.value.trim();
+    if (v) { tour.name = v; saveTours(); fillTourSelect(); }
+    else el.value = tour.name;
+  } else if (el.classList.contains('pkg-hours')) {
+    const v = parseNum(el.value);
+    if (v > 0) { tour.hours = Math.round(v * 100) / 100; saveTours(); fillTourSelect(); }
+    else el.value = tour.hours;
+  }
+}
+function onPkgClick(e) {
+  const btn = e.target.closest('button[data-del]');
+  if (!btn) return;
+  const t = gTours[Number(btn.dataset.del)];
+  if (!t) return;
+  if (!confirm(`Delete package "${t.name}"?\nLogged entries keep the hours they were saved with.`)) return;
+  gTours.splice(Number(btn.dataset.del), 1);
+  saveTours(); renderPackages(); fillTourSelect();
+  toast(`Removed "${t.name}".`);
+}
+function addPackage() {
+  const name = $('p-name').value.trim();
+  const h = parseNum($('p-hours').value);
+  if (!name) { toast('Give the new package a name.'); return; }
+  if (!(h > 0)) { toast('Enter the default hours for the new package.'); return; }
+  gTours.push({ id: 't' + newId(), name, hours: Math.round(h * 100) / 100 });
+  $('p-name').value = ''; $('p-hours').value = '';
+  saveTours(); renderPackages(); fillTourSelect();
+  toast(`Added "${name}" (${fmtNum(h)} h).`);
+}
+function exportData() {
+  const data = { app: 'rafi-work-hours', version: 2, exportedAt: new Date().toISOString(),
+    worker: myUser ? myUser.name : null,
+    entries: state.entries, paidUpToDate: state.paidUpToDate, hourlyRate: state.hourlyRate };
+  downloadFile('rafi-work-hours-backup-' + keyOf(new Date()) + '.json', JSON.stringify(data, null, 2), 'application/json');
+  toast('Backup exported.');
+}
+function onImport(e) {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(String(reader.result));
+      if (!data || !Array.isArray(data.entries)) throw new Error('bad');
+      state = normalizeRecord(data);
+      save();
+      if (state.hourlyRate != null) $('i-rate').value = fmtNum(state.hourlyRate);
+      renderAll();
+      toast('Backup imported.');
+    } catch (err) {
+      alert('Could not import — that file does not look like a backup from this app.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* ---------- theme ---------- */
+const THEME_KEY = 'rafi-work-hours-theme';
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  const btn = $('theme-toggle');
+  if (btn) {
+    btn.textContent = t === 'dark' ? '☀️' : '🌙';
+    btn.title = t === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
+  }
+  try { localStorage.setItem(THEME_KEY, t); } catch (e) {}
+}
+function initialTheme() {
+  let saved = null;
+  try { saved = localStorage.getItem(THEME_KEY); } catch (e) {}
+  if (saved === 'dark' || saved === 'light') return saved;
+  try { return (typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light'; }
+  catch (e) { return 'light'; }
+}
+
+/* ---------- report ---------- */
+let lastReport = null;
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+function reportRange() {
+  let from = $('r-from').value, to = $('r-to').value;
+  if (from && to && from > to) {
+    $('r-from').value = to; $('r-to').value = from;
+    from = $('r-from').value; to = $('r-to').value;
+  }
+  return { from, to };
+}
+function buildReportBody(from, to) {
+  const inR = state.entries.filter(x => x.date >= from && x.date <= to)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.tourName.localeCompare(b.tourName));
+  const now = new Date();
+  const head = `<div class="rep-head">
+    <div class="rep-title">❄ ${brand()} — Work report</div>
+    <div class="rep-meta">Period: <b>${fmtDate(from)} – ${fmtDate(to)}</b> &nbsp;·&nbsp; Generated: ${fmtDateLong(keyOf(now))} at ${pad2(now.getHours())}:${pad2(now.getMinutes())}</div>
+  </div>`;
+  if (!inR.length) {
+    return head + '<div class="empty" style="margin-top:14px">No logged days in this range.</div>';
+  }
+  const total = inR.reduce((s, x) => s + x.hours, 0);
+  const days = new Set(inR.map(x => x.date)).size;
+  const dbl = inR.filter(x => doubleInfo(x.date).double).reduce((s, x) => s + x.hours, 0);
+  const rate = state.hourlyRate;
+  const paidUntil = state.paidUpToDate;
+  const paidInR = inR.filter(x => paidUntil && x.date <= paidUntil);
+  const paidH = paidInR.reduce((s, x) => s + x.hours, 0);
+
+  const months = {};
+  for (const x of inR) {
+    const mk = x.date.slice(0, 7);
+    if (!months[mk]) months[mk] = { days: new Set(), hours: 0, dbl: 0 };
+    months[mk].days.add(x.date);
+    months[mk].hours += x.hours;
+    if (doubleInfo(x.date).double) months[mk].dbl += x.hours;
+  }
+  const monthRows = Object.keys(months).sort().map(mk => {
+    const p = mk.split('-').map(Number);
+    const M = months[mk];
+    return `<tr><td>${MONTH_NAMES[p[1] - 1]} ${p[0]}</td><td>${M.days.size}</td><td>${fmtNum(M.hours)} h</td><td>${fmtNum(M.dbl)} h</td></tr>`;
+  }).join('');
+
+  const dayRows = inR.map(x => {
+    const info = doubleInfo(x.date);
+    const isPaid = !!(paidUntil && x.date <= paidUntil);
+    return `<tr class="${isPaid ? 'rp-paid' : ''}">
+      <td>${fmtDateLong(x.date)}</td>
+      <td>${esc(x.tourName)}</td>
+      <td>${fmtNum(x.hours)} h</td>
+      <td>${info.double ? '❄ ' + esc(info.label) : 'Regular'}</td>
+      <td>${isPaid ? 'Paid' : 'Open'}</td></tr>`;
+  }).join('');
+
+  const tours = {};
+  for (const x of inR) {
+    if (!tours[x.tourName]) tours[x.tourName] = { count: 0, hours: 0 };
+    tours[x.tourName].count++;
+    tours[x.tourName].hours += x.hours;
+  }
+  const tourRows = Object.keys(tours).sort((a, b) => tours[b].hours - tours[a].hours).map(n =>
+    `<tr><td>${esc(n)}</td><td>${tours[n].count}</td><td>${fmtNum(tours[n].hours)} h</td><td>${total ? Math.round(tours[n].hours / total * 100) : 0}%</td></tr>`
+  ).join('');
+
+  return head + `
+  <h3>Overview</h3>
+  <table class="rep-table kv">
+    <tr><td>Working days</td><td><b>${days}</b></td></tr>
+    <tr><td>Entries (tours logged)</td><td><b>${inR.length}</b></td></tr>
+    <tr><td>Total work hours</td><td><b>${fmtNum(total)} h</b></td></tr>
+    <tr><td>↳ of which regular days</td><td>${fmtNum(total - dbl)} h</td></tr>
+    <tr><td>↳ of which ❄ double days (Sundays &amp; Finnish holidays)</td><td>${fmtNum(dbl)} h</td></tr>
+    <tr><td>Total income${rate ? ' (at ' + eurFmt(rate) + ' / h)' : ''}</td><td><b>${rate ? eurFmt(total * rate) : '— no hourly rate set'}</b></td></tr>
+    <tr><td>Paid status</td><td>${paidUntil ? 'Paid up to <b>' + fmtDate(paidUntil) + '</b> — ' + paidInR.length + ' days / ' + fmtNum(paidH) + ' h of this range already paid' : 'Nothing marked as paid yet'}</td></tr>
+  </table>
+  ${Object.keys(months).length > 1 ? `
+  <h3>Monthly summary</h3>
+  <table class="rep-table">
+    <tr><th>Month</th><th>Days</th><th>Hours</th><th>❄ double</th></tr>
+    ${monthRows}
+  </table>` : ''}
+  <h3>Day-by-day details</h3>
+  <table class="rep-table">
+    <tr><th>Date</th><th>Tour package</th><th>Hours</th><th>Day type</th><th>Status</th></tr>
+    ${dayRows}
+  </table>
+  <h3>Per-tour breakdown</h3>
+  <table class="rep-table">
+    <tr><th>Tour package</th><th>Times</th><th>Total hours</th><th>Share</th></tr>
+    ${tourRows}
+  </table>
+  <div class="rep-foot">❄ ${brand()} — hours include ❄ double-day multipliers (Sundays &amp; Finnish public holidays).</div>`;
+}
+function generateReport() {
+  const { from, to } = reportRange();
+  if (!from || !to) { toast('Pick a date range first.'); return; }
+  lastReport = { from, to };
+  $('report-area').innerHTML = `<div class="report">${buildReportBody(from, to)}</div>`;
+  $('report-actions').classList.remove('hidden');
+  document.body.classList.add('has-report');
+  toast('Report generated.');
+}
+const REPORT_DOC_CSS = `
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#122a3a;margin:0;padding:28px;background:#fff;font-size:14px;line-height:1.45}
+  .report{max-width:820px;margin:0 auto;border:1px solid #d9e6f0;border-radius:14px;padding:28px;background:#fff}
+  .rep-head{border-bottom:3px solid #0e6ba8;padding-bottom:12px;margin-bottom:6px}
+  .rep-title{font-size:19px;font-weight:800}
+  .rep-meta{color:#5c7488;font-size:13px;margin-top:4px}
+  .report h3{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:#0e6ba8;margin:20px 0 8px}
+  .rep-table{width:100%;border-collapse:collapse;font-size:13.5px}
+  .rep-table th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;color:#5c7488;border-bottom:2px solid #d9e6f0;padding:6px 8px}
+  .rep-table td{border-bottom:1px solid #e4edf4;padding:6px 8px;vertical-align:top}
+  .rep-table.kv td:first-child{color:#5c7488;width:45%}
+  .rep-table tr.rp-paid td{opacity:.55}
+  .empty{padding:26px;text-align:center;color:#5c7488;border:1px dashed #d9e6f0;border-radius:12px}
+  .rep-foot{margin-top:18px;color:#5c7488;font-size:12px;text-align:center}
+  @media print{body{padding:0}.report{border:none;padding:0;max-width:none}}
+`;
+function reportDoc() {
+  const { from, to } = lastReport;
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>${brand()} — Report ${fmtDate(from)} – ${fmtDate(to)}</title><style>${REPORT_DOC_CSS}</style></head><body><div class="report">${buildReportBody(from, to)}</div></body></html>`;
+}
+function csvCell(v) { v = String(v); return /[",\n;]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+function reportCSV() {
+  const { from, to } = lastReport;
+  const inR = state.entries.filter(x => x.date >= from && x.date <= to)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.tourName.localeCompare(b.tourName));
+  const paidUntil = state.paidUpToDate;
+  const lines = ['Date,Day of week,Tour package,Hours,Day type,Status'];
+  for (const x of inR) {
+    const info = doubleInfo(x.date);
+    const isPaid = !!(paidUntil && x.date <= paidUntil);
+    lines.push([fmtDate(x.date), DAY_S[parseKey(x.date).getDay()], x.tourName, fmtNum(x.hours), info.double ? info.label : 'Regular', isPaid ? 'Paid' : 'Open'].map(csvCell).join(','));
+  }
+  const total = inR.reduce((s, x) => s + x.hours, 0);
+  lines.push(['Total', inR.length + ' entries', '', fmtNum(total) + ' h', '', ''].join(','));
+  return '\uFEFF' + lines.join('\r\n');
+}
+function downloadFile(name, content, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+/* ---------- auth (accounts stored in the shared record, salted + hashed) ---------- */
+async function sha256hex(str) {
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  let h1 = 0xdeadbeef ^ str.length, h2 = 0x41c6ce57 ^ str.length;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 2246822507);
+  return (h2 >>> 0).toString(16).padStart(8, '0') + (h1 >>> 0).toString(16).padStart(8, '0');
+}
+async function makeUser(name, pw, role) {
+  const salt = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+  const hash = await sha256hex(salt + '|' + name.trim().toLowerCase() + '|' + pw);
+  return { id: 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: name.trim(), role, salt, hash };
+}
+async function checkPassword(user, pw) {
+  const hash = await sha256hex(user.salt + '|' + user.name.trim().toLowerCase() + '|' + pw);
+  return hash === user.hash;
+}
+function userByName(name) {
+  const n = (name || '').trim().toLowerCase();
+  return (gData && Array.isArray(gData.users) ? gData.users : []).find(u => u.name.trim().toLowerCase() === n) || null;
+}
+
+/* ---------- shared record sync (GitHub repo mdraficode/rafi-work-hours) ---------- */
+let cloudBusy = false, cloudTimer = null;
+function ghToken() { try { return localStorage.getItem(GH_TOKEN_KEY) || null; } catch (e) { return null; } }
+function setCloudStatus(s) {
+  const c = $('cloud-pill');
+  if (!c) return;
+  if (s === 'synced') { c.textContent = '☁️ Saved'; c.className = 'pill cloud ok'; }
+  else if (s === 'saving') { c.textContent = '☁️ Saving…'; c.className = 'pill cloud'; }
+  else if (s === 'warn') { c.textContent = '⚠ Sync error'; c.className = 'pill cloud warn'; }
+  else { c.textContent = '☁️ Cloud'; c.className = 'pill cloud'; }
+}
+function renderGhUi() {
+  const on = !!ghToken();
+  const d = $('gh-disconnect'); if (d) d.hidden = !on;
+  const s = $('gh-status'); if (s) s.textContent = on ? '● connected' : '○ not connected';
+}
+function ghFetch(path, options) {
+  return fetch('https://api.github.com/repos/' + GH_REPO + (path ? '/' + path : ''), {
+    ...options,
+    headers: {
+      'Authorization': 'Bearer ' + ghToken(),
+      'Accept': 'application/vnd.github+json',
+      'User-Agent': 'rafi-work-hours-app',
+      'X-GitHub-Api-Version': '2022-11-28',
+      ...(options.headers || {})
+    }
+  });
+}
+function toB64(str) { return btoa(unescape(encodeURIComponent(str))); }
+function fromB64(b64) { return decodeURIComponent(escape(atob(b64))); }
+function isV1(file) { return !!file && !Array.isArray(file.users) && Array.isArray(file.entries); }
+function normalizeFile(f) {
+  const users = Array.isArray(f.users) ? f.users.filter(u => u && u.id && u.name).map(u => ({
+    id: String(u.id), name: String(u.name), role: u.role === 'admin' ? 'admin' : 'worker',
+    salt: String(u.salt || ''), hash: String(u.hash || '')
+  })) : [];
+  const records = {};
+  if (f.records && typeof f.records === 'object') {
+    for (const k of Object.keys(f.records)) if (f.records[k]) records[k] = normalizeRecord(f.records[k]);
+  }
+  const tours = Array.isArray(f.tours) && f.tours.length
+    ? f.tours.filter(t => t && t.id && t.name).map(t => ({ id: String(t.id), name: String(t.name), hours: Math.max(0, Number(t.hours) || 0) }))
+    : DEFAULT_TOURS.map(t => ({ ...t }));
+  const out = { version: 2, updatedAt: typeof f.updatedAt === 'string' ? f.updatedAt : null, tours, users, records };
+  if (f.v1Raw) out.v1Raw = f.v1Raw;
+  return out;
+}
+async function fetchCloud() {
+  const res = await ghFetch('contents/' + GH_FILE, { method: 'GET', cache: 'no-store' });
+  if (res.status === 404) return { sha: null, file: null };
+  if (!res.ok) throw new Error('read failed (HTTP ' + res.status + ')');
+  const f = await res.json();
+  let data;
+  try { data = JSON.parse(fromB64(f.content)); } catch (e) { throw new Error('the shared record file is corrupted'); }
+  return { sha: f.sha, file: data };
+}
+function baseFile(raw) {
+  if (raw && !isV1(raw)) return normalizeFile(raw);
+  const tours = raw && Array.isArray(raw.tours) && raw.tours.length
+    ? normalizeFile({ tours: raw.tours }).tours
+    : DEFAULT_TOURS.map(t => ({ ...t }));
+  const base = { version: 2, updatedAt: null, tours, users: [], records: {} };
+  if (raw && isV1(raw)) base.v1Raw = raw;
+  return base;
+}
+async function writeCloud(mutateFn, message) {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const { sha, file } = await fetchCloud();
+    const base = baseFile(file);
+    mutateFn(base);
+    base.updatedAt = new Date().toISOString();
+    const put = await ghFetch('contents/' + GH_FILE, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: message || 'chore: sync work log — ' + new Date().toISOString(),
+        content: toB64(JSON.stringify(base, null, 2)),
+        branch: 'main',
+        ...(sha ? { sha } : {})
+      })
+    });
+    if (put.status === 409) continue;
+    if (!put.ok) throw new Error('save failed (HTTP ' + put.status + ')');
+    gData = base;
+    return 'ok';
+  }
+  throw new Error('Could not save — the record is being changed at the same time. Please try again.');
+}
+function myRecordMutator() {
+  return (base) => {
+    const theirs = base.records[myUser.id];
+    if (!theirs || (state.updatedAt || '') >= (normalizeRecord(theirs).updatedAt || '')) {
+      base.records[myUser.id] = JSON.parse(JSON.stringify(state));
+    } else {
+      state = normalizeRecord(theirs);
+      writeCache();
+    }
+  };
+}
+async function pushToCloud() {
+  if (!ghToken() || !myUser) return;
+  if (typeof fetch === 'undefined') { setCloudStatus('warn'); return; }
+  if (cloudBusy) { cloudTimer = setTimeout(pushToCloud, 2000); return; }
+  cloudBusy = true;
+  setCloudStatus('saving');
+  try {
+    await writeCloud(myRecordMutator());
+    setCloudStatus('synced');
+  } catch (e) {
+    setCloudStatus('warn');
+  }
+  cloudBusy = false;
+}
+function scheduleCloudPush() {
+  if (!myUser) return;
+  clearTimeout(cloudTimer);
+  cloudTimer = setTimeout(pushToCloud, 1200);
+}
+async function cloudSync() {
+  if (!myUser) return;
+  if (typeof fetch === 'undefined') { setCloudStatus('warn'); return; }
+  setCloudStatus('saving');
+  try {
+    const { file } = await fetchCloud();
+    if (file && !isV1(file)) {
+      gData = normalizeFile(file);
+      gTours = gData.tours.slice();
+      const theirs = gData.records[myUser.id] ? normalizeRecord(gData.records[myUser.id]) : null;
+      if (theirs && (theirs.updatedAt || '') > (state.updatedAt || '')) {
+        state = theirs;
+        writeCache();
+        if (state.hourlyRate != null) $('i-rate').value = fmtNum(state.hourlyRate);
+        fillTourSelect();
+        renderAll();
+      }
+    }
+    setCloudStatus('synced');
+  } catch (e) {
+    setCloudStatus('warn');
+  }
+}
+function saveTours() {
+  if (!myUser || myUser.role !== 'admin') { toast('Only the admin can change tour packages.'); return; }
+  writeCloud((base) => { base.tours = gTours.map(t => ({ ...t })); }, 'chore: update tour packages')
+    .then(() => setCloudStatus('synced'))
+    .catch(() => setCloudStatus('warn'));
+}
+async function verifyToken() {
+  const res = await ghFetch('', { method: 'GET' });
+  if (!res.ok) throw new Error('The app key was rejected (HTTP ' + res.status + '). Ask the admin for the correct key.');
+}
+async function connectAdminKey(tokenStr) {
+  const t = (tokenStr || '').trim();
+  const msg = $('gh-msg');
+  if (!t) { if (msg) msg.textContent = 'Paste the app key first.'; return; }
+  try { localStorage.setItem(GH_TOKEN_KEY, t); } catch (e) {}
+  renderGhUi();
+  const inp = $('gh-token');
+  if (inp) inp.value = '';
+  if (typeof fetch === 'undefined') { if (msg) msg.textContent = 'App key saved in this browser.'; return; }
+  if (msg) msg.textContent = 'Checking app key…';
+  try {
+    await verifyToken();
+    if (msg) msg.textContent = '✅ Connected to the shared record.';
+    await cloudSync();
+  } catch (e) {
+    if (msg) msg.textContent = '⚠ ' + e.message;
+    setCloudStatus('warn');
+  }
+}
+function disconnectAdminKey() {
+  try { localStorage.removeItem(GH_TOKEN_KEY); } catch (e) {}
+  const msg = $('gh-msg');
+  if (msg) msg.textContent = 'Disconnected — changes will not sync until you reconnect.';
+  renderGhUi();
+  setCloudStatus('off');
+}
+
+/* ---------- login gate & sessions ---------- */
+function showGate(mode) {
+  const gate = $('gate'), app = $('app');
+  gate.classList.remove('hidden');
+  app.classList.add('hidden');
+  $('gate-token').classList.toggle('hidden', mode !== 'token');
+  $('gate-login').classList.toggle('hidden', mode !== 'login');
+  if (mode === 'login') renderAdminPane();
+}
+function gateErr(msg) { const e = $('gate-err'); if (e) e.textContent = msg || ''; }
+async function enterApp(user, freshFile) {
+  myUser = user;
+  if (freshFile) gData = freshFile;
+  gTours = (gData && Array.isArray(gData.tours) && gData.tours.length) ? gData.tours.slice() : DEFAULT_TOURS.map(t => ({ ...t }));
+  const rec = (gData && gData.records[user.id]) ? normalizeRecord(gData.records[user.id]) : (loadCache(user.id) || emptyRecord());
+  state = rec;
+  writeCache();
+  try { localStorage.setItem(SESSION_KEY, user.id); } catch (e) {}
+  $('app-title').textContent = user.name + ' Work Hours';
+  document.title = user.name + "'s Work Hours";
+  $('tabbtn-workers').hidden = user.role !== 'admin';
+  $('i-rate').readOnly = user.role !== 'admin';
+  $('gate').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  if (state.hourlyRate != null) $('i-rate').value = fmtNum(state.hourlyRate);
+  $('f-date').value = keyOf(new Date());
+  $('f-tour').value = '';
+  $('f-hours').value = '';
+  recalcHours();
+  fillTourSelect();
+  renderAll();
+  applyTheme(initialTheme());
+  setCloudStatus(ghToken() ? 'synced' : 'off');
+  cloudSync();
+}
+function logout() {
+  if (myUser && !confirm('Log out of ' + myUser.name + ' Work Hours?')) return;
+  myUser = null;
+  try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+  state = emptyRecord();
+  selectedWorkerId = null;
+  showGate(ghToken() ? 'login' : 'token');
+  setCloudStatus('off');
+}
+async function doWorkerLogin() {
+  const name = $('gl-name').value.trim(), pw = $('gl-pass').value;
+  if (!name || !pw) { gateErr('Enter your name and password.'); return; }
+  gateErr('');
+  try {
+    const { file } = await fetchCloud();
+    if (!file || isV1(file)) throw new Error('The shared record is not set up yet — the admin needs to create the admin account first (Admin tab).');
+    gData = normalizeFile(file);
+    const u = userByName(name);
+    if (!u) throw new Error('No worker found with that name. (New here? Use the "New Worker" tab.)');
+    if (!(await checkPassword(u, pw))) throw new Error('Wrong password.');
+    enterApp(u, gData);
+  } catch (e) { gateErr(e.message); }
+}
+async function doWorkerSignup() {
+  const name = $('gn-name').value.trim(), pw = $('gn-pass').value;
+  if (name.length < 2) { gateErr('Enter your full name (at least 2 characters).'); return; }
+  if (pw.length < 4) { gateErr('Choose a password with at least 4 characters.'); return; }
+  gateErr('');
+  try {
+    const { file } = await fetchCloud();
+    if (file && !isV1(file)) {
+      gData = normalizeFile(file);
+      if (userByName(name)) throw new Error('A worker with that name already exists — log in instead.');
+    }
+    const u = await makeUser(name, pw, 'worker');
+    await writeCloud((base) => {
+      if (base.users.some(x => x.name.trim().toLowerCase() === u.name.trim().toLowerCase())) throw new Error('A worker with that name already exists — log in instead.');
+      base.users.push(u);
+      base.records[u.id] = emptyRecord();
+    }, 'feat: new worker account — ' + u.name);
+    enterApp(u, gData);
+  } catch (e) { gateErr(e.message); }
+}
+function renderAdminPane() {
+  const pane = $('gpane-admin');
+  if (!pane) return;
+  if (!cloudLoaded) {
+    pane.innerHTML = '<p class="hint">Connecting to the shared record…</p>';
+    return;
+  }
+  const hasAdmin = gData && Array.isArray(gData.users) && gData.users.some(u => u.role === 'admin');
+  if (!hasAdmin) {
+    pane.innerHTML = '<p class="hint" style="margin-top:0">No admin account exists yet. Create it now — any work records already in the shared record will belong to this admin account.</p>' +
+      '<div class="field"><label for="ga-name">Admin name</label><input id="ga-name" type="text" placeholder="Your full name" autocomplete="off"></div>' +
+      '<div class="field"><label for="ga-pass">Password</label><input id="ga-pass" type="password" placeholder="At least 4 characters"></div>' +
+      '<button id="ga-create" class="primary" type="button" style="width:100%">Create admin account</button>';
+    $('ga-create').addEventListener('click', doAdminCreate);
+  } else {
+    pane.innerHTML = '<div class="field"><label for="ga-name">Admin name</label><input id="ga-name" type="text" autocomplete="off"></div>' +
+      '<div class="field"><label for="ga-pass">Password</label><input id="ga-pass" type="password"></div>' +
+      '<button id="ga-login" class="primary" type="button" style="width:100%">Log in as admin</button>';
+    $('ga-login').addEventListener('click', doAdminLogin);
+  }
+}
+async function doAdminLogin() {
+  const name = $('ga-name').value.trim(), pw = $('ga-pass').value;
+  if (!name || !pw) { gateErr('Enter the admin name and password.'); return; }
+  gateErr('');
+  try {
+    const { file } = await fetchCloud();
+    if (!file || isV1(file)) throw new Error('The shared record is not set up yet.');
+    gData = normalizeFile(file);
+    const u = userByName(name);
+    if (!u || u.role !== 'admin') throw new Error('No admin account with that name.');
+    if (!(await checkPassword(u, pw))) throw new Error('Wrong password.');
+    enterApp(u, gData);
+  } catch (e) { gateErr(e.message); }
+}
+async function doAdminCreate() {
+  const name = $('ga-name').value.trim(), pw = $('ga-pass').value;
+  if (name.length < 2) { gateErr('Enter the admin name (at least 2 characters).'); return; }
+  if (pw.length < 4) { gateErr('Choose a password with at least 4 characters.'); return; }
+  gateErr('');
+  try {
+    const u = await makeUser(name, pw, 'admin');
+    await writeCloud((base) => {
+      if (base.users.some(x => x.role === 'admin')) throw new Error('An admin account already exists — log in instead.');
+      base.users.push(u);
+      if (base.v1Raw) {
+        base.records[u.id] = normalizeRecord(base.v1Raw);
+        delete base.v1Raw;
+      } else if (!base.records[u.id]) {
+        base.records[u.id] = emptyRecord();
+      }
+    }, 'feat: admin account created — ' + u.name);
+    enterApp(u, gData);
+  } catch (e) { gateErr(e.message); }
+}
+async function connectGateKey() {
+  const t = $('gate-key').value.trim();
+  const msg = $('gate-key-msg');
+  if (!t) { msg.textContent = 'Paste the app key first.'; return; }
+  try { localStorage.setItem(GH_TOKEN_KEY, t); } catch (e) {}
+  $('gate-key').value = '';
+  if (typeof fetch === 'undefined') { msg.textContent = 'App key saved in this browser.'; showGate('login'); return; }
+  msg.textContent = 'Checking app key…';
+  try {
+    await verifyToken();
+    msg.textContent = '✅ Connected to the shared record.';
+    const { file } = await fetchCloud();
+    if (file && !isV1(file)) gData = normalizeFile(file);
+    showGate('login');
+    renderAdminPane();
+    gateErr('');
+  } catch (e) {
+    try { localStorage.removeItem(GH_TOKEN_KEY); } catch (e2) {}
+    msg.textContent = '⚠ ' + e.message;
+  }
+}
+async function boot() {
+  if (!ghToken()) { showGate('token'); return; }
+  showGate('login');
+  if (typeof fetch === 'undefined') { renderAdminPane(); gateErr('This browser has no network access.'); return; }
+  try {
+    const { file } = await fetchCloud();
+    cloudLoaded = true;
+    if (file && !isV1(file)) gData = normalizeFile(file);
+    let sessId = null;
+    try { sessId = localStorage.getItem(SESSION_KEY); } catch (e) {}
+    if (sessId && gData) {
+      const u = gData.users.find(x => x.id === sessId);
+      if (u) { enterApp(u, gData); return; }
+    }
+    showGate('login');
+    renderAdminPane();
+  } catch (e) {
+    showGate('login');
+    renderAdminPane();
+    gateErr('Could not reach the shared record: ' + e.message + ' — check the app key and your connection, then try logging in.');
+  }
+}
+
+/* ---------- workers panel (admin only) ---------- */
+let selectedWorkerId = null;
+function workerStats(rec, rate) {
+  const totalHours = rec.entries.reduce((s, e) => s + e.hours, 0);
+  const paidHours = rec.paidUpToDate ? rec.entries.filter(e => e.date <= rec.paidUpToDate).reduce((s, e) => s + e.hours, 0) : 0;
+  const paid = rate != null ? paidHours * rate : null;
+  const unpaid = rate != null ? (totalHours - paidHours) * rate : null;
+  const last = rec.entries.length ? rec.entries.map(e => e.date).sort().pop() : null;
+  return { totalHours, paidHours, paid, unpaid, last, count: rec.entries.length };
+}
+function renderWorkers() {
+  if (!myUser || myUser.role !== 'admin' || !gData) return;
+  const users = gData.users;
+  let totH = 0, totPaid = 0, totUnpaid = 0;
+  const rows = users.map(u => {
+    const rec = gData.records[u.id] ? normalizeRecord(gData.records[u.id]) : emptyRecord();
+    const st = workerStats(rec, rec.hourlyRate);
+    totH += st.totalHours;
+    if (st.paid != null) totPaid += st.paid;
+    if (st.unpaid != null) totUnpaid += st.unpaid;
+    return '<div class="worker-row" data-wid="' + u.id + '">' +
+      '<div><span class="wname">' + esc(u.name) + '</span> <span class="hint">· ' + (u.role === 'admin' ? 'admin' : 'worker') + '</span>' +
+      '<div class="wstats"><span><b>' + fmtNum(st.totalHours) + ' h</b> total</span><span>' + st.count + ' entries</span>' +
+      (st.last ? '<span>last ' + fmtDate(st.last) + '</span>' : '') +
+      (rec.paidUpToDate ? '<span>paid up to <b>' + fmtDate(rec.paidUpToDate) + '</b></span>' : '<span>not paid yet</span>') +
+      (rec.hourlyRate != null ? '<span>' + fmtNum(rec.hourlyRate) + ' €/h</span>' : '') + '</div></div>' +
+      '<button class="ghost" type="button">View details</button></div>';
+  }).join('');
+  $('worker-list').innerHTML = rows || '<p class="hint">No accounts yet.</p>';
+  $('workers-overview').innerHTML = 'All accounts: <b>' + fmtNum(totH) + ' h</b> total · ' + users.length + ' account(s)' +
+    (totPaid > 0 ? ' · estimated paid <b>' + eurFmt(totPaid) + '</b>' : '') +
+    (totUnpaid > 0.005 ? ' · estimated unpaid <b>' + eurFmt(totUnpaid) + '</b>' : '');
+  if (selectedWorkerId && !users.some(u => u.id === selectedWorkerId)) {
+    selectedWorkerId = null;
+    $('worker-detail').classList.add('hidden');
+  }
+}
+function renderWorkerDetail(u, rec) {
+  const st = workerStats(rec, rec.hourlyRate);
+  $('wd-name').textContent = u.name + (u.role === 'admin' ? ' (admin)' : '') + ' — work history';
+  $('wd-stats').innerHTML =
+    '<div class="wd-stat"><div class="hint">Total hours</div><b>' + fmtNum(st.totalHours) + ' h</b></div>' +
+    '<div class="wd-stat"><div class="hint">Entries</div><b>' + st.count + '</b></div>' +
+    '<div class="wd-stat"><div class="hint">Hourly rate</div><b>' + (rec.hourlyRate != null ? fmtNum(rec.hourlyRate) + ' €/h' : '—') + '</b></div>' +
+    '<div class="wd-stat"><div class="hint">Paid up to</div><b>' + (rec.paidUpToDate ? fmtDate(rec.paidUpToDate) : 'not yet') + '</b></div>' +
+    '<div class="wd-stat"><div class="hint">Paid (est.)</div><b>' + (st.paid != null ? eurFmt(st.paid) : '—') + '</b></div>' +
+    '<div class="wd-stat"><div class="hint">Unpaid (est.)</div><b>' + (st.unpaid != null ? eurFmt(st.unpaid) : '—') + '</b></div>';
+  $('wd-paid').value = rec.paidUpToDate || '';
+  $('wd-rate').value = rec.hourlyRate != null ? fmtNum(rec.hourlyRate) : '';
+  const rows = rec.entries.slice().sort((a, b) => a.date < b.date ? -1 : 1).map(e => {
+    const paid = rec.paidUpToDate ? e.date <= rec.paidUpToDate : false;
+    const dbl = doubleInfo(e.date).double;
+    return '<div class="entry' + (paid ? ' paid' : '') + '" style="display:grid;grid-template-columns:110px 1fr auto auto;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px">' +
+      '<b>' + fmtDate(e.date) + '</b><span>' + esc(e.tourName) + (dbl ? ' <span class="hint">❄</span>' : '') + '</span>' +
+      '<b>' + fmtNum(e.hours) + ' h</b><button class="mini danger" data-wdel="' + e.id + '" type="button">✕</button></div>';
+  }).join('');
+  $('wd-log').innerHTML = rows || '<p class="hint">No entries logged yet.</p>';
+}
+function selectWorker(id) {
+  if (!gData) return;
+  const u = gData.users.find(x => x.id === id);
+  if (!u) return;
+  selectedWorkerId = id;
+  const rec = gData.records[u.id] ? normalizeRecord(gData.records[u.id]) : emptyRecord();
+  $('worker-detail').classList.remove('hidden');
+  renderWorkerDetail(u, rec);
+  const el = $('worker-detail');
+  if (el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function workerDetailSave(mutate, message, afterMsg) {
+  const u = gData.users.find(x => x.id === selectedWorkerId);
+  if (!u) return;
+  const rec = normalizeRecord(gData.records[u.id] || {});
+  mutate(rec);
+  rec.updatedAt = new Date().toISOString();
+  writeCloud((base) => { base.records[u.id] = rec; }, message)
+    .then(() => {
+      gData = gData; // writeCloud already refreshed gData
+      renderWorkers();
+      selectWorker(u.id);
+      setCloudStatus('synced');
+      toast(afterMsg);
+    })
+    .catch(() => setCloudStatus('warn'));
+}
+
+/* ---------- events: login gate ---------- */
+$('gate-key-connect').addEventListener('click', connectGateKey);
+$('gate-key').addEventListener('keydown', (e) => { if (e.key === 'Enter') connectGateKey(); });
+document.querySelectorAll('[data-gtab]').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('[data-gtab]').forEach(x => x.classList.toggle('active', x === b));
+  ['login', 'newworker', 'admin'].forEach(t => $('gpane-' + t).classList.toggle('hidden', b.dataset.gtab !== t));
+  gateErr('');
+}));
+$('gl-submit').addEventListener('click', doWorkerLogin);
+$('gl-pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') doWorkerLogin(); });
+$('gn-submit').addEventListener('click', doWorkerSignup);
+$('gn-pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') doWorkerSignup(); });
+$('logout-btn').addEventListener('click', logout);
+/* ---------- events: admin key (packages tab) ---------- */
+$('gh-connect').addEventListener('click', () => connectAdminKey($('gh-token').value));
+$('gh-token').addEventListener('keydown', (e) => { if (e.key === 'Enter') connectAdminKey($('gh-token').value); });
+$('gh-disconnect').addEventListener('click', () => disconnectAdminKey());
+/* ---------- events: workers panel ---------- */
+$('worker-list').addEventListener('click', (e) => {
+  const row = e.target.closest('.worker-row');
+  if (row) selectWorker(row.dataset.wid);
+});
+$('wd-setpaid').addEventListener('click', () => {
+  const d = $('wd-paid').value;
+  workerDetailSave((rec) => { rec.paidUpToDate = d || null; },
+    'chore: paid status for worker' + (d ? ' up to ' + d : ' reset'),
+    d ? 'Paid up to ' + fmtDate(d) + ' saved.' : 'Paid status reset.');
+});
+$('wd-setrate').addEventListener('click', () => {
+  const r = parseNum($('wd-rate').value);
+  if (!(r > 0)) { toast('Enter an hourly rate above zero.'); return; }
+  workerDetailSave((rec) => { rec.hourlyRate = Math.round(r * 100) / 100; },
+    'chore: hourly rate for worker', 'Hourly rate updated.');
+});
+$('wd-unpaid').addEventListener('click', () => {
+  workerDetailSave((rec) => { rec.paidUpToDate = null; },
+    'chore: paid status reset for worker', 'Paid status reset.');
+});
+$('worker-detail').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-wdel]');
+  if (!btn || !gData) return;
+  const u = gData.users.find(x => x.id === selectedWorkerId);
+  if (!u) return;
+  const rec = normalizeRecord(gData.records[u.id] || {});
+  const en = rec.entries.find(x => x.id === btn.dataset.wdel);
+  if (!en) return;
+  if (!confirm('Delete this entry for ' + u.name + '?\n' + fmtDateLong(en.date) + ' — ' + en.tourName + ', ' + fmtNum(en.hours) + ' h')) return;
+  workerDetailSave((rec2) => { rec2.entries = rec2.entries.filter(x => x.id !== en.id); },
+    'chore: delete entry for ' + u.name, 'Entry deleted.');
+});
+
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b === btn));
+    ['new', 'log', 'income', 'report', 'packages', 'workers'].forEach(t => $('tab-' + t).classList.toggle('hidden', t !== btn.dataset.tab));
+  });
+});
+$('f-date').addEventListener('change', recalcHours);
+$('f-tour').addEventListener('change', recalcHours);
+$('f-add').addEventListener('click', addEntry);
+$('i-from').addEventListener('change', renderIncome);
+$('i-to').addEventListener('change', renderIncome);
+$('i-rate').addEventListener('input', () => { state.hourlyRate = parseNum($('i-rate').value) || null; save(); renderIncome(); });
+document.querySelectorAll('.presets button[data-range]').forEach(b => b.addEventListener('click', () => applyPreset(b.dataset.range, $('i-from'), $('i-to'), renderIncome)));
+document.querySelectorAll('.presets button[data-range-report]').forEach(b => b.addEventListener('click', () => applyPreset(b.dataset.rangeReport, $('r-from'), $('r-to'))));
+$('reset-paid').addEventListener('click', () => {
+  if (!state.paidUpToDate) return;
+  if (!confirm('Un-grey ALL logged days (clear the paid-up-to date)?')) return;
+  state.paidUpToDate = null;
+  save(); renderLog(); updatePaidPill();
+  toast('Paid status reset.');
+});
+$('log-list').addEventListener('click', onLogClick);
+$('pkg-list').addEventListener('change', onPkgChange);
+$('pkg-list').addEventListener('click', onPkgClick);
+$('p-add').addEventListener('click', addPackage);
+$('b-export').addEventListener('click', exportData);
+$('b-import').addEventListener('click', () => $('b-file').click());
+$('b-file').addEventListener('change', onImport);
+$('theme-toggle').addEventListener('click', () => applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'));
+$('r-generate').addEventListener('click', generateReport);
+$('r-print').addEventListener('click', () => window.print());
+$('r-html').addEventListener('click', () => {
+  if (!lastReport) return;
+  downloadFile('rafi-report_' + lastReport.from + '_to_' + lastReport.to + '.html', reportDoc(), 'text/html');
+  toast('Report downloaded.');
+});
+$('r-csv').addEventListener('click', () => {
+  if (!lastReport) return;
+  downloadFile('rafi-report_' + lastReport.from + '_to_' + lastReport.to + '.csv', reportCSV(), 'text/csv');
+  toast('CSV downloaded.');
+});
+
+/* ---------- init ---------- */
+(function init() {
+  const years = dateRangeOptions();
+  const now = new Date();
+  const todayKey = keyOf(now);
+  const monthStart = keyOf(new Date(now.getFullYear(), now.getMonth(), 1));
+  fillDateSelect($('f-date'), years, todayKey);
+  fillDateSelect($('i-from'), years, monthStart);
+  fillDateSelect($('i-to'), years, todayKey);
+  fillDateSelect($('r-from'), years, monthStart);
+  fillDateSelect($('r-to'), years, todayKey);
+  applyTheme(initialTheme());
+  setCloudStatus('off');
+  boot();
+})();
+</script>
+</body>
+</html>
