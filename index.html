@@ -70,8 +70,19 @@
   .log-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
   .log-summary{font-size:14px;color:var(--muted)}
   .log-summary b{color:var(--ink)}
-  .entry{display:grid;grid-template-columns:190px 1fr 78px 92px auto;gap:12px;align-items:center;
+  .entry{display:grid;grid-template-columns:190px 1fr 78px 92px auto;gap:12px;align-items:center;position:relative;
     border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:8px;background:#fff}
+  .e-actions{align-self:end;padding-right:26px}
+  .note-btn{position:absolute;top:6px;right:8px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid var(--line);border-radius:8px;cursor:pointer;font-size:13px;line-height:1;padding:0;opacity:.5;z-index:3}
+  .note-btn:hover{opacity:1;background:var(--accent-soft)}
+  .note-btn.has{opacity:1;border-color:var(--dbl-line);background:var(--dbl-bg)}
+  .note-pop{position:absolute;top:34px;right:8px;width:min(280px,calc(100% - 24px));background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.35);padding:12px 12px 10px;z-index:30}
+  .np-close{position:absolute;top:6px;right:8px;background:transparent;border:none;cursor:pointer;color:var(--muted);font-size:12px;padding:2px 4px}
+  .np-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px;padding-right:16px}
+  .np-text{font-size:13.5px;white-space:pre-wrap;word-break:break-word}
+  .note-pop textarea{width:100%;min-height:74px;resize:vertical;font:inherit;font-size:13.5px;color:var(--ink);background:#fbfdfe;border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+  .np-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  :root[data-theme="dark"] .note-pop textarea{background:#0a1016}
   .entry.paid{opacity:.5;background:#f2f5f7}
   .e-date b{display:block;font-size:14px;margin-bottom:3px}
   .e-tag{font-size:11.5px;color:var(--dbl);background:var(--dbl-bg);border:1px solid var(--dbl-line);padding:1px 7px;border-radius:999px;white-space:nowrap;display:inline-block}
@@ -590,7 +601,7 @@ function normalizeRecord(r) {
   return {
     entries: Array.isArray(r.entries) ? r.entries.filter(x => x && x.date && x.tourName && Number.isFinite(Number(x.hours))).map(x => ({
       id: String(x.id || newId()), date: String(x.date), tourId: String(x.tourId || ''), tourName: String(x.tourName),
-      hours: Math.round(Number(x.hours) * 100) / 100
+      hours: Math.round(Number(x.hours) * 100) / 100, note: typeof x.note === 'string' ? x.note : ''
     })) : [],
     paidUpToDate: typeof r.paidUpToDate === 'string' ? r.paidUpToDate : null,
     hourlyRate: (r.hourlyRate != null && Number.isFinite(Number(r.hourlyRate))) ? Number(r.hourlyRate) : null,
@@ -714,9 +725,88 @@ function renderLog() {
         ${isPaid ? '' : `<button class="mini" data-act="paid" data-id="${e.id}">Mark as paid</button>`}
         <button class="mini danger" data-act="del" data-id="${e.id}" title="Delete entry">✕</button>
       </div>
+      <button class="note-btn${e.note ? ' has' : ''}" type="button" data-note="${e.id}" title="${e.note ? 'View note' : 'Add a note'}">🔔</button>
+      <div class="note-pop hidden" data-pop="${e.id}"></div>
     </div>`;
   }).join('');
 }
+/* ---------- workday notes ---------- */
+let notePop = null; // { ctx: 'me' | 'admin', id, mode }
+function notePopHTML(e, mode) {
+  if (mode === 'edit') {
+    return '<button class="np-close" type="button" data-np="close" title="Close">✕</button>' +
+      '<div class="np-label">Note · ' + fmtDateLong(e.date) + '</div>' +
+      '<textarea maxlength="500" placeholder="Write a note for this workday…">\n' + esc(e.note || '') + '</textarea>' +
+      '<div class="np-actions"><button class="primary mini" type="button" data-np="save">💾 Save note</button>' +
+      '<button class="ghost mini" type="button" data-np="close">Cancel</button></div>';
+  }
+  return '<button class="np-close" type="button" data-np="close" title="Close">✕</button>' +
+    '<div class="np-label">Note · ' + fmtDateLong(e.date) + '</div>' +
+    '<div class="np-text">' + esc(e.note) + '</div>' +
+    '<div class="np-actions"><button class="ghost mini" type="button" data-np="edit">✏️ Edit</button>' +
+    '<button class="ghost mini danger" type="button" data-np="clear">✕ Remove note</button></div>';
+}
+function closeNotePop() {
+  notePop = null;
+  document.querySelectorAll('.note-pop').forEach(p => p.classList.add('hidden'));
+}
+function openNotePop(ctx, entryId, mode) {
+  const src = ctx === 'admin'
+    ? (gData && gData.records[selectedWorkerId] ? normalizeRecord(gData.records[selectedWorkerId]).entries : [])
+    : state.entries;
+  const e = src.find(x => x.id === entryId);
+  if (!e) return;
+  const pop = document.querySelector('#' + (ctx === 'admin' ? 'worker-detail' : 'log-list') + ' [data-pop="' + entryId + '"]');
+  if (!pop) return;
+  notePop = { ctx: ctx, id: entryId, mode: mode || (e.note ? 'view' : 'edit') };
+  pop.innerHTML = notePopHTML(e, notePop.mode);
+  pop.classList.remove('hidden');
+  if (notePop.mode === 'edit') { const ta = pop.querySelector('textarea'); if (ta) ta.focus(); }
+}
+document.addEventListener('click', (ev) => {
+  const t = ev.target;
+  if (!t || !t.closest) return;
+  const btn = t.closest('.note-btn');
+  if (btn) {
+    const id = btn.dataset.note;
+    const ctx = btn.closest('#worker-detail') ? 'admin' : 'me';
+    if (notePop && notePop.id === id && notePop.ctx === ctx) closeNotePop();
+    else openNotePop(ctx, id, null);
+    return;
+  }
+  const act = t.closest('[data-np]');
+  if (act && notePop) {
+    const kind = act.dataset.np;
+    const src = notePop.ctx === 'admin'
+      ? (gData && gData.records[selectedWorkerId] ? normalizeRecord(gData.records[selectedWorkerId]).entries : [])
+      : state.entries;
+    const e = src.find(x => x.id === notePop.id);
+    if (kind === 'close') { closeNotePop(); return; }
+    if (kind === 'edit') { openNotePop(notePop.ctx, notePop.id, 'edit'); return; }
+    if (kind === 'save' || kind === 'clear') {
+      if (!e) { closeNotePop(); return; }
+      if (kind === 'clear' && e.note && !confirm('Remove the note for ' + fmtDateLong(e.date) + '?')) return;
+      const popEl = act.closest('.note-pop');
+      const ta = kind === 'save' && popEl ? popEl.querySelector('textarea') : null;
+      const text = kind === 'clear' ? '' : (ta ? ta.value.trim() : '');
+      const ctx = notePop.ctx, eid = notePop.id, edate = e.date;
+      if (ctx === 'admin') {
+        workerDetailSave((rec) => { const en = rec.entries.find(x => x.id === eid); if (en) en.note = text; },
+          'chore: workday note — ' + edate, text ? 'Note saved.' : 'Note removed.');
+      } else {
+        const en2 = state.entries.find(x => x.id === eid);
+        if (en2) en2.note = text;
+        save(); renderLog();
+        toast(text ? 'Note saved for ' + fmtDate(edate) + '.' : 'Note removed.');
+      }
+      closeNotePop();
+      return;
+    }
+    return;
+  }
+  if (notePop) closeNotePop();
+});
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && notePop) closeNotePop(); });
 function renderIncome() {
   let from = $('i-from').value, to = $('i-to').value;
   if (from && to && from > to) {
@@ -930,7 +1020,8 @@ function buildReportBody(from, to) {
       <td>${esc(x.tourName)}</td>
       <td>${fmtNum(x.hours)} h</td>
       <td>${info.double ? '❄ ' + esc(info.label) : 'Regular'}</td>
-      <td>${isPaid ? 'Paid' : 'Open'}</td></tr>`;
+      <td>${isPaid ? 'Paid' : 'Open'}</td>
+      <td style="max-width:190px;word-break:break-word">${x.note ? esc(x.note) : ''}</td></tr>`;
   }).join('');
 
   const tours = {};
@@ -962,7 +1053,7 @@ function buildReportBody(from, to) {
   </table>` : ''}
   <h3>Day-by-day details</h3>
   <table class="rep-table">
-    <tr><th>Date</th><th>Tour package</th><th>Hours</th><th>Day type</th><th>Status</th></tr>
+    <tr><th>Date</th><th>Tour package</th><th>Hours</th><th>Day type</th><th>Status</th><th>Note</th></tr>
     ${dayRows}
   </table>
   <h3>Per-tour breakdown</h3>
@@ -1007,14 +1098,14 @@ function reportCSV() {
   const inR = state.entries.filter(x => x.date >= from && x.date <= to)
     .sort((a, b) => a.date.localeCompare(b.date) || a.tourName.localeCompare(b.tourName));
   const paidUntil = state.paidUpToDate;
-  const lines = ['Date,Day of week,Tour package,Hours,Day type,Status'];
+  const lines = ['Date,Day of week,Tour package,Hours,Day type,Status,Note'];
   for (const x of inR) {
     const info = doubleInfo(x.date);
     const isPaid = !!(paidUntil && x.date <= paidUntil);
-    lines.push([fmtDate(x.date), DAY_S[parseKey(x.date).getDay()], x.tourName, fmtNum(x.hours), info.double ? info.label : 'Regular', isPaid ? 'Paid' : 'Open'].map(csvCell).join(','));
+    lines.push([fmtDate(x.date), DAY_S[parseKey(x.date).getDay()], x.tourName, fmtNum(x.hours), info.double ? info.label : 'Regular', isPaid ? 'Paid' : 'Open', x.note || ''].map(csvCell).join(','));
   }
   const total = inR.reduce((s, x) => s + x.hours, 0);
-  lines.push(['Total', inR.length + ' entries', '', fmtNum(total) + ' h', '', ''].join(','));
+  lines.push(['Total', inR.length + ' entries', '', fmtNum(total) + ' h', '', '', ''].join(','));
   return '\uFEFF' + lines.join('\r\n');
 }
 function downloadFile(name, content, type) {
@@ -1079,7 +1170,7 @@ const SEED_ADMIN = { salt: 'seed-admin-v1', hash: 'c1a82fffb85e737ee869642e9e9f6
 let EMAILJS_PUBLIC_KEY = 'sZu9ICQYxo5KcKBEr';
 let EMAILJS_SERVICE_ID = 'service_ptxvc0l';
 let EMAILJS_TEMPLATE_ID = 'template_76367u8';
-window.rwhTest = { setEmailConfig(a, b, c) { EMAILJS_PUBLIC_KEY = a; EMAILJS_SERVICE_ID = b; EMAILJS_TEMPLATE_ID = c; } };
+window.rwhTest = { setEmailConfig(a, b, c) { EMAILJS_PUBLIC_KEY = a; EMAILJS_SERVICE_ID = b; EMAILJS_TEMPLATE_ID = c; }, syncNow: () => { try { if (myUser) cloudSync(); if (isAdmin) adminTick(); } catch (e) {} } };
 function emailConfigured() { return !!(EMAILJS_PUBLIC_KEY && EMAILJS_SERVICE_ID && EMAILJS_TEMPLATE_ID); }
 async function makeUser(name, pw, role) {
   const salt = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
@@ -1235,23 +1326,32 @@ async function cloudSync() {
     const { file } = await fetchCloud();
     if (file) {
       gData = isV1(file) ? virtualFileFromV1(file) : normalizeFile(file);
+      const toursChanged = JSON.stringify(gData.tours) !== JSON.stringify(gTours);
       gTours = gData.tours.slice();
       const theirs = gData.records[myUser.id] ? normalizeRecord(gData.records[myUser.id]) : null;
+      let adopted = false;
       if (theirs && (theirs.updatedAt || '') > (state.updatedAt || '')) {
         state = theirs;
+        adopted = true;
         writeCache();
         if (state.hourlyRate != null) $('i-rate').value = fmtNum(state.hourlyRate);
-        fillTourSelect();
-        renderAll();
       }
+      if (toursChanged || adopted) { fillTourSelect(); renderAll(); }
     }
     setCloudStatus('synced');
   } catch (e) {
     setCloudStatus('warn');
   }
 }
+async function adminTick() {
+  if (!isAdmin || typeof fetch === 'undefined') return;
+  try {
+    const { file } = await fetchCloud();
+    if (file) { gData = isV1(file) ? virtualFileFromV1(file) : normalizeFile(file); renderWorkers(); }
+  } catch (e) {}
+}
 function saveTours() {
-  if (!myUser || !isAdmin) { toast('Only the admin can change tour packages.'); return; }
+  if (!isAdmin) { toast('Only the admin can change tour packages.'); return; }
   writeCloud((base) => { base.tours = gTours.map(t => ({ ...t })); }, 'chore: update tour packages')
     .then(() => setCloudStatus('synced'))
     .catch(() => setCloudStatus('warn'));
@@ -1647,9 +1747,11 @@ function renderWorkerDetail(u, rec) {
   const rows = rec.entries.slice().sort((a, b) => a.date < b.date ? -1 : 1).map(e => {
     const paid = rec.paidUpToDate ? e.date <= rec.paidUpToDate : false;
     const dbl = doubleInfo(e.date).double;
-    return '<div class="entry' + (paid ? ' paid' : '') + '" style="display:grid;grid-template-columns:110px 1fr auto auto;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px">' +
+    return '<div class="entry' + (paid ? ' paid' : '') + '" style="display:grid;grid-template-columns:110px 1fr auto auto;gap:10px;align-items:center;padding:8px 34px 8px 10px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px">' +
       '<b>' + fmtDate(e.date) + '</b><span>' + esc(e.tourName) + (dbl ? ' <span class="hint">❄</span>' : '') + '</span>' +
-      '<b>' + fmtNum(e.hours) + ' h</b><button class="mini danger" data-wdel="' + e.id + '" type="button">✕</button></div>';
+      '<b>' + fmtNum(e.hours) + ' h</b><button class="mini danger" data-wdel="' + e.id + '" type="button">✕</button>' +
+      '<button class="note-btn' + (e.note ? ' has' : '') + '" type="button" data-note="' + e.id + '" title="' + (e.note ? 'View note' : 'Add a note') + '">🔔</button>' +
+      '<div class="note-pop hidden" data-pop="' + e.id + '"></div></div>';
   }).join('');
   $('wd-log').innerHTML = rows || '<p class="hint">No entries logged yet.</p>';
 }
@@ -1821,6 +1923,9 @@ $('r-csv').addEventListener('click', () => {
   fillDateSelect($('r-to'), years, todayKey);
   applyTheme(initialTheme());
   setCloudStatus('off');
+  setInterval(() => {
+    try { if (document.visibilityState === 'visible') { if (isAdmin) adminTick(); else if (myUser) cloudSync(); } } catch (e) {}
+  }, 30000);
   boot();
 })();
 </script>
