@@ -1074,9 +1074,9 @@ const RESET_EMAIL = 'mdrafi.aust.ipe@gmail.com';
 //   worker "Rafi" (existing history) and admin (default password: "admin")
 const SEED_RAFI = { id: 'u-rafi', name: 'Rafi', role: 'worker', salt: 'seed-rafi-v1', hash: '7f5d6fe7bbfcfd420c714cb972173909fb3f1178bc8222f296238a5e23787bcd' };
 const SEED_ADMIN = { salt: 'seed-admin-v1', hash: 'c1a82fffb85e737ee869642e9e9f689a62aedd23bd868195f80226ac3511caaf', mustChange: true };
-let EMAILJS_PUBLIC_KEY = '';
-let EMAILJS_SERVICE_ID = '';
-let EMAILJS_TEMPLATE_ID = '';
+let EMAILJS_PUBLIC_KEY = 'sZu9ICQYxo5KcKBEr';
+let EMAILJS_SERVICE_ID = 'service_ptxvc0l';
+let EMAILJS_TEMPLATE_ID = 'template_76367u8';
 window.rwhTest = { setEmailConfig(a, b, c) { EMAILJS_PUBLIC_KEY = a; EMAILJS_SERVICE_ID = b; EMAILJS_TEMPLATE_ID = c; } };
 function emailConfigured() { return !!(EMAILJS_PUBLIC_KEY && EMAILJS_SERVICE_ID && EMAILJS_TEMPLATE_ID); }
 async function makeUser(name, pw, role) {
