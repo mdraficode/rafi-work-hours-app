@@ -421,6 +421,10 @@
         <input id="wd-rate" type="number" min="0" step="0.5" style="width:90px">
         <button id="wd-setrate" class="ghost" type="button">Set rate</button>
         <button id="wd-unpaid" class="ghost" type="button" style="margin-left:12px">↺ Reset paid status</button>
+        <span class="hint" style="margin-left:12px">Excel report — pick a period</span>
+        <input id="wd-x-from" type="date" title="From date">
+        <input id="wd-x-to" type="date" title="To date">
+        <button id="wd-xlsx" class="ghost" type="button">⬇ Download Excel (.xlsx)</button>
       </div>
       <div id="wd-log"></div>
     </div>
@@ -1124,13 +1128,16 @@ function loadXLSX() {
 const XCOL = i => String.fromCharCode(65 + i);
 async function downloadReportXLSX() {
   if (!lastReport) { toast('Generate the report first, then download it as Excel.'); return; }
+  await downloadXLSXFor(state, lastReport.from, lastReport.to, null);
+}
+async function downloadXLSXFor(rec, from, to, title) {
   let XLSX;
   try { XLSX = await loadXLSX(); } catch (e) { toast('⚠ ' + e.message); return; }
-  const { from, to } = lastReport;
-  const inR = state.entries.filter(x => x.date >= from && x.date <= to)
+  const inR = (rec.entries || []).filter(x => x.date >= from && x.date <= to)
     .sort((a, b) => a.date.localeCompare(b.date) || a.tourName.localeCompare(b.tourName));
-  const paidUntil = state.paidUpToDate;
-  const rate = state.hourlyRate;
+  const paidUntil = rec.paidUpToDate;
+  const rate = rec.hourlyRate;
+  const who = title ? title + "'s Work Record" : brand();
   const n = inR.length;
   const lastRow = n + 1;           // last data row (1-based Excel rows: header = 1)
   const tRow = lastRow + 1;        // TOTAL row
@@ -1213,7 +1220,7 @@ async function downloadReportXLSX() {
 
   // ---- Sheet 3: Notes
   const notes = [
-    '❄ ' + brand() + ' — Excel verification report',
+    '❄ ' + who + ' — Excel verification report',
     '',
     'Generated: ' + fmtDateLong(keyOf(new Date())) + '  ·  Period: ' + fmtDate(from) + ' – ' + fmtDate(to) + '  ·  ' + n + ' work day(s)',
     '',
@@ -1238,7 +1245,8 @@ async function downloadReportXLSX() {
   XLSX.utils.book_append_sheet(wb, ws, 'Work Log');
   XLSX.utils.book_append_sheet(wb, ms, 'Monthly');
   XLSX.utils.book_append_sheet(wb, ns, 'Notes');
-  XLSX.writeFile(wb, 'rafi-report_' + from + '_to_' + to + '.xlsx');
+  const slug = title ? (title.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '') || 'worker') + '_' : '';
+  XLSX.writeFile(wb, 'rafi-report_' + slug + from + '_to_' + to + '.xlsx');
   toast('Excel report downloaded.');
 }
 function downloadFile(name, content, type) {
@@ -1896,6 +1904,7 @@ function selectWorker(id) {
   const rec = gData.records[u.id] ? normalizeRecord(gData.records[u.id]) : emptyRecord();
   $('worker-detail').classList.remove('hidden');
   renderWorkerDetail(u, rec);
+  adminXlsxDefaults();
   const el = $('worker-detail');
   if (el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -1988,6 +1997,22 @@ $('wd-unpaid').addEventListener('click', () => {
   workerDetailSave((rec) => { rec.paidUpToDate = null; },
     'chore: paid status reset for worker', 'Paid status reset.');
 });
+function adminXlsxDefaults() {
+  const today = keyOf(new Date());
+  if (!$('wd-x-from').value) $('wd-x-from').value = today.slice(0, 8) + '01';
+  if (!$('wd-x-to').value) $('wd-x-to').value = today;
+}
+async function adminDownloadXLSX() {
+  if (!gData || !selectedWorkerId) { toast('Select a worker first.'); return; }
+  const u = gData.users.find(x => x.id === selectedWorkerId);
+  if (!u) return;
+  let from = $('wd-x-from').value, to = $('wd-x-to').value;
+  if (!from || !to) { toast('Pick the from and to dates for the Excel report.'); return; }
+  if (from > to) { const t = from; from = to; to = t; }
+  const rec = normalizeRecord(gData.records[u.id] || {});
+  await downloadXLSXFor(rec, from, to, u.name);
+}
+$('wd-xlsx').addEventListener('click', adminDownloadXLSX);
 $('worker-detail').addEventListener('click', (e) => {
   const btn = e.target.closest('button[data-wdel]');
   if (!btn || !gData) return;
