@@ -274,8 +274,8 @@
           <button id="gl-forgot" class="ghost" type="button" style="width:100%;margin-top:8px">Forgot password?</button>
           <div id="gl-fa" class="hidden" style="margin-top:10px;padding-top:12px;border-top:1px dashed var(--line)">
             <div id="glf-step1">
-              <p class="hint" style="margin-top:0">A 6-digit code will be sent to <b>mdrafi.aust.ipe@gmail.com</b>. Make sure your worker name is in the field above, then send the code.</p>
-              <button id="glf-send" class="ghost" type="button">Send code to my email</button>
+              <p class="hint" style="margin-top:0">A 6-digit reset code will be emailed to the developer. <b>Ask the developer for the code</b> to reset your password. Make sure your worker name is in the field above, then send the code.</p>
+              <button id="glf-send" class="ghost" type="button">Send the password reset code to developer's email</button>
             </div>
             <div id="glf-step2" class="hidden">
               <div class="field"><label for="glf-code">Enter the 6-digit code</label><input id="glf-code" type="text" inputmode="numeric" maxlength="6"></div>
@@ -488,9 +488,9 @@
     </div>
     <div class="settings-block" style="margin-top:16px">
       <h3 style="font-size:14px;margin-bottom:6px">Forgot password</h3>
-      <p class="hint">A 6-digit code will be sent to <b>mdrafi.aust.ipe@gmail.com</b>. Enter the code, then set a new password.</p>
+      <p class="hint">A 6-digit reset code will be emailed to the developer. <b>Ask the developer for the code</b> to reset your password. Enter the code, then set a new password.</p>
       <div id="af-step1">
-        <button id="af-send" class="ghost" type="button">Send code to my email</button>
+        <button id="af-send" class="ghost" type="button">Send the password reset code to developer's email</button>
       </div>
       <div id="af-step2" class="hidden">
         <div class="field"><label for="af-code">Enter the 6-digit code</label><input id="af-code" type="text" inputmode="numeric" maxlength="6"></div>
@@ -1463,6 +1463,8 @@ async function sha256hex(str) {
   return sha256Bytes(new TextEncoder().encode(str));
 }
 const RESET_EMAIL = 'mdrafi.aust.ipe@gmail.com';
+const RESET_CODE_TTL_HOURS = 12;                      // how long a password-reset code stays valid
+const RESET_CODE_TTL_MS = RESET_CODE_TTL_HOURS * 60 * 60 * 1000;
 // Preset accounts (created automatically from the old single-user record):
 //   worker "Rafi" (existing history) and admin (default password: "admin")
 const SEED_RAFI = { id: 'u-rafi', name: 'Rafi', role: 'worker', salt: 'seed-rafi-v1', hash: '7f5d6fe7bbfcfd420c714cb972173909fb3f1178bc8222f296238a5e23787bcd' };
@@ -1802,7 +1804,7 @@ function renderAdminPane() {
     '<button id="ga-login" class="primary" type="button" style="width:100%">Log in as admin</button>' +
     '<button id="ga-forgot" class="ghost" type="button" style="width:100%;margin-top:8px">Forgot admin password?</button>' +
     '<div id="ga-fa" class="hidden" style="margin-top:10px;padding-top:12px;border-top:1px dashed var(--line)">' +
-    '<div id="gaf-step1"><p class="hint" style="margin-top:0">A 6-digit code will be sent to <b>' + RESET_EMAIL + '</b>.</p><button id="gaf-send" class="ghost" type="button">Send code to my email</button></div>' +
+    '<div id="gaf-step1"><p class="hint" style="margin-top:0">A 6-digit reset code will be emailed to the developer. <b>Ask the developer for the code</b> to reset your password.</p><button id="gaf-send" class="ghost" type="button">Send the password reset code to developer\'s email</button></div>' +
     '<div id="gaf-step2" class="hidden"><div class="field"><label for="gaf-code">Enter the 6-digit code</label><input id="gaf-code" type="text" inputmode="numeric" maxlength="6"></div><button id="gaf-verify" class="primary" type="button">Verify code</button></div>' +
     '<div id="gaf-step3" class="hidden"><div class="field"><label for="gaf-new">New password</label><input id="gaf-new" type="password"></div><div class="field"><label for="gaf-confirm">Confirm password</label><input id="gaf-confirm" type="password"></div><button id="gaf-save" class="primary" type="button">Set new password</button></div>' +
     '<p id="gaf-msg" class="hint" style="min-height:1.2em;margin-top:10px"></p></div>';
@@ -1893,11 +1895,12 @@ async function sendResetCode(whoName) {
   const emailjs = await loadEmailJS();
   const r = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, { code: code, who: whoName, to: RESET_EMAIL }, { publicKey: EMAILJS_PUBLIC_KEY });
   if (!r || (r.status && r.status >= 400)) throw new Error('Could not send the code email. Try again in a moment.');
-  resetFlow = { code: code, exp: Date.now() + 10 * 60 * 1000 };
+  resetFlow = { code: code, exp: Date.now() + RESET_CODE_TTL_MS };
 }
 function verifyResetCode(input) {
   if (!resetFlow) return 'No code was requested — press "Send code" first.';
-  if (Date.now() > resetFlow.exp) { resetFlow = null; return 'That code has expired (10 min) — send a new one.'; }
+  if (Date.now() > resetFlow.exp) { resetFlow = null; return 'That code has expired (valid for '
+    + RESET_CODE_TTL_HOURS + ' hours) — send a new one.'; }
   if (String(input).trim() !== resetFlow.code) return 'The code does not match. Try again.';
   resetFlow = null;
   return null;
@@ -1932,7 +1935,7 @@ async function glfSend() {
     $('glf-msg').textContent = 'Sending code…';
     await sendResetCode(name);
     resetForgotSteps('glf', 2);
-    $('glf-msg').textContent = 'A code was sent to ' + RESET_EMAIL + ' — it stays valid for 10 minutes.';
+    $('glf-msg').textContent = 'A code was sent to the developer\'s email — ask the developer for it. It stays valid for ' + RESET_CODE_TTL_HOURS + ' hours.';
   } catch (e) { $('glf-msg').textContent = '⚠ ' + e.message; }
 }
 function glfVerify() {
@@ -1956,7 +1959,7 @@ async function gafSend() {
     $('gaf-msg').textContent = 'Sending code…';
     await sendResetCode('Admin');
     resetForgotSteps('gaf', 2);
-    $('gaf-msg').textContent = 'A code was sent to ' + RESET_EMAIL + ' — it stays valid for 10 minutes.';
+    $('gaf-msg').textContent = 'A code was sent to the developer\'s email — ask the developer for it. It stays valid for ' + RESET_CODE_TTL_HOURS + ' hours.';
   } catch (e) { $('gaf-msg').textContent = '⚠ ' + e.message; }
 }
 function gafVerify() {
@@ -2116,7 +2119,7 @@ $('af-send').addEventListener('click', () => {
   $('af-msg').textContent = 'Sending code…';
   sendResetCode('Admin').then(() => {
     resetForgotSteps('af', 2);
-    $('af-msg').textContent = 'A code was sent to ' + RESET_EMAIL + ' — it stays valid for 10 minutes.';
+    $('af-msg').textContent = 'A code was sent to the developer\'s email — ask the developer for it. It stays valid for ' + RESET_CODE_TTL_HOURS + ' hours.';
   }).catch(e => { $('af-msg').textContent = '⚠ ' + e.message; });
 });
 $('af-verify').addEventListener('click', () => {
