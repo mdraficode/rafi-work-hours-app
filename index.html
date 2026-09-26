@@ -60,6 +60,14 @@
   button.primary:hover{filter:brightness(1.06)}
   button.ghost{font:inherit;font-weight:600;background:#fff;color:var(--accent);border:1px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer}
   button.ghost:hover{background:var(--accent-soft)}
+  a.primary{display:inline-block;text-decoration:none;font:inherit;font-weight:700;color:#fff;border:0;border-radius:12px;padding:11px 18px;cursor:pointer;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 6px 16px rgba(14,107,168,.25)}
+  a.primary:hover{filter:brightness(1.06)}
+  .get-app{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:space-between;
+    margin-top:20px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--accent-soft)}
+  .get-app-txt{display:flex;flex-direction:column;gap:3px;font-size:14px;flex:1;min-width:210px}
+  .get-app-sub{font-size:12.5px;color:var(--muted)}
+  .get-app-btn{white-space:nowrap}
   button.danger{font:inherit;font-weight:700;color:#fff;border:0;border-radius:10px;padding:9px 14px;cursor:pointer;
     background:linear-gradient(135deg,#c8372d,#a52a22);box-shadow:0 4px 12px rgba(168,42,34,.22)}
   button.danger:hover{filter:brightness(1.07)}
@@ -519,7 +527,16 @@
     </div>
   </section>
 
-  <footer>Data auto-saves to the shared GitHub record · ❄ Work Hour Records · <a href="https://github.com/mdraficode/rafi-work-hours-app/releases/latest/download/work-hour-records.apk" target="_blank" rel="noopener" style="color:var(--accent-2)">📱 Android app (latest)</a></footer>
+  <div class="get-app" id="get-app">
+    <div class="get-app-txt">
+      <b>📱 Get the Android app</b>
+      <span class="get-app-sub" id="get-app-sub">Opens from your home screen in one tap — same records, no browser needed.</span>
+    </div>
+    <a id="get-app-btn" class="primary get-app-btn"
+       href="https://github.com/mdraficode/rafi-work-hours-app/releases/latest/download/work-hour-records.apk"
+       target="_blank" rel="noopener">⬇ Download app</a>
+  </div>
+  <footer>Data auto-saves to the shared GitHub record · ❄ Work Hour Records</footer>
 </div>
 <div id="toast" role="status"></div>
 
@@ -2272,6 +2289,33 @@ $('r-csv').addEventListener('click', () => {
 $('r-xlsx').addEventListener('click', downloadReportXLSX);
 
 /* ---------- init ---------- */
+/* ---------- bottom "get the app" strip ---------- */
+function inNativeApp() {
+  try {
+    return typeof window.AndroidBridge !== 'undefined' || /WorkHourRecords/.test(navigator.userAgent || '');
+  } catch (e) { return false; }
+}
+function setupGetAppStrip() {
+  const strip = $('get-app');
+  if (!strip) return;
+  const inApp = inNativeApp();
+  strip.classList.toggle('hidden', inApp);        // hidden inside the APK, shown on the web
+  if (!inApp) refreshAppVersionNote();
+}
+async function refreshAppVersionNote() {
+  const el = $('get-app-sub');
+  if (!el || typeof fetch === 'undefined') return;
+  try {
+    const r = await fetch('https://api.github.com/repos/mdraficode/rafi-work-hours-app/releases/latest',
+      { headers: { Accept: 'application/vnd.github+json' } });
+    if (!r || !r.ok) return;
+    const j = await r.json();
+    if (j && j.tag_name) {
+      el.textContent = 'Newest version ' + j.tag_name + ' — one tap from your home screen, same records.';
+    }
+  } catch (e) { /* offline or blocked: keep the default line */ }
+}
+
 (function init() {
   const years = dateRangeOptions();
   const now = new Date();
@@ -2284,6 +2328,7 @@ $('r-xlsx').addEventListener('click', downloadReportXLSX);
   fillDateSelect($('r-to'), years, todayKey);
   applyTheme(initialTheme());
   setCloudStatus('off');
+  setupGetAppStrip();
   setInterval(() => {
     try { if (document.visibilityState === 'visible') { if (isAdmin) adminTick(); else if (myUser) cloudSync(); } } catch (e) {}
   }, 30000);
