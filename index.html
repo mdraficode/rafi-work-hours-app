@@ -271,7 +271,7 @@
           <div class="field"><label for="gl-name">Worker name</label><input id="gl-name" type="text" autocomplete="off"></div>
           <div class="field"><label for="gl-pass">Password</label><input id="gl-pass" type="password"></div>
           <button id="gl-submit" class="primary" type="button" style="width:100%">Log in</button>
-          <button id="gl-forgot" class="ghost" type="button" style="width:100%;margin-top:8px">Forgot password?</button>
+          <button id="gl-forgot" class="ghost hidden" type="button" style="width:100%;margin-top:8px">Forgot password?</button>
           <div id="gl-fa" class="hidden" style="margin-top:10px;padding-top:12px;border-top:1px dashed var(--line)">
             <div id="glf-step1">
               <p class="hint" style="margin-top:0">A 6-digit reset code will be emailed to the developer. <b>Ask the developer for the code</b> to reset your password. Make sure your worker name is in the field above, then send the code.</p>
@@ -324,6 +324,7 @@
     <button class="tab" data-tab="income" role="tab">💶 Total income</button>
     <button class="tab" data-tab="report" role="tab">📄 Reports</button>
     <button class="tab" data-tab="backup" role="tab">💾 Backup</button>
+    <button class="tab" data-tab="password" role="tab">🔑 Password</button>
   </nav>
 
   <!-- ============ NEW ENTRY ============ -->
@@ -524,6 +525,39 @@
       <button id="b-export" class="ghost">⬇ Export my data (JSON)</button>
       <button id="b-import" class="ghost">⬆ Import my data (JSON)</button>
       <input id="b-file" type="file" accept="application/json,.json" hidden>
+    </div>
+  </section>
+
+  <!-- ============ PASSWORD (worker) ============ -->
+  <section id="tab-password" class="card hidden">
+    <h2>🔑 Password</h2>
+
+    <div class="settings-block">
+      <h3 style="font-size:14px;margin-bottom:6px">Change password</h3>
+      <p class="hint">Know your current password? Change it here straight away — no code needed.</p>
+      <div class="field"><label for="wp-cur">Current password</label><input id="wp-cur" type="password" autocomplete="current-password"></div>
+      <div class="field"><label for="wp-new">New password</label><input id="wp-new" type="password" autocomplete="new-password"></div>
+      <div class="field"><label for="wp-confirm">Confirm new password</label><input id="wp-confirm" type="password" autocomplete="new-password"></div>
+      <button id="wp-save" class="primary" type="button">Change password</button>
+      <p id="wp-msg" class="hint" style="min-height:1.2em;margin-top:10px"></p>
+    </div>
+
+    <div class="settings-block" style="margin-top:16px">
+      <h3 style="font-size:14px;margin-bottom:6px">Forgot password</h3>
+      <p class="hint">Forgot it? A 6-digit reset code will be emailed to the developer. <b>Ask the developer for the code</b> to reset your password. The request uses your account name: <b id="wp-who"></b>.</p>
+      <div id="wpf-step1">
+        <button id="wpf-send" class="ghost" type="button">Send the password reset code to developer's email</button>
+      </div>
+      <div id="wpf-step2" class="hidden">
+        <div class="field"><label for="wpf-code">Enter the 6-digit code</label><input id="wpf-code" type="text" inputmode="numeric" maxlength="6"></div>
+        <button id="wpf-verify" class="primary" type="button">Verify code</button>
+      </div>
+      <div id="wpf-step3" class="hidden">
+        <div class="field"><label for="wpf-new">New password</label><input id="wpf-new" type="password"></div>
+        <div class="field"><label for="wpf-confirm">Confirm password</label><input id="wpf-confirm" type="password"></div>
+        <button id="wpf-save" class="primary" type="button">Set new password</button>
+      </div>
+      <p id="wpf-msg" class="hint" style="min-height:1.2em;margin-top:10px"></p>
     </div>
   </section>
 
@@ -1699,6 +1733,8 @@ function showGate(mode) {
   if (mode === 'login') renderAdminPane();
 }
 function gateErr(msg) { const e = $('gate-err'); if (e) e.textContent = msg || ''; }
+const APP_TABS = ['new', 'log', 'income', 'report', 'backup', 'password'];
+
 async function enterApp(user, freshFile) {
   myUser = user;
   isAdmin = false;
@@ -1715,11 +1751,17 @@ async function enterApp(user, freshFile) {
   $('admin-panel').classList.add('hidden');
   $('paid-pill').style.display = '';
   document.querySelectorAll('#main-tabs .tab').forEach(b => b.classList.toggle('active', b.dataset.tab === 'new'));
-  ['new', 'log', 'income', 'report', 'backup'].forEach(t => $('tab-' + t).classList.toggle('hidden', t !== 'new'));
+  APP_TABS.forEach(t => $('tab-' + t).classList.toggle('hidden', t !== 'new'));
   $('gate').classList.add('hidden');
   $('app').classList.remove('hidden');
   if (state.hourlyRate != null) $('i-rate').value = fmtNum(state.hourlyRate);
   $('f-date').value = keyOf(new Date());
+  const wpWho = $('wp-who');
+  if (wpWho) wpWho.textContent = user.name;
+  resetForgotSteps('wpf', 1);
+  const wpfMsg = $('wpf-msg'), wpMsg = $('wp-msg');
+  if (wpfMsg) wpfMsg.textContent = '';
+  if (wpMsg) wpMsg.textContent = '';
   $('f-tour').value = '';
   $('f-hours').value = '';
   recalcHours();
@@ -1737,7 +1779,7 @@ function enterAdmin() {
   $('app-title').textContent = 'Admin Panel';
   document.title = "Admin Panel — Work Hour Records";
   $('main-tabs').classList.add('hidden');
-  ['new', 'log', 'income', 'report', 'backup'].forEach(t => $('tab-' + t).classList.add('hidden'));
+  APP_TABS.forEach(t => $('tab-' + t).classList.add('hidden'));
   $('admin-panel').classList.remove('hidden');
   $('paid-pill').style.display = 'none';
   $('admin-notice').classList.toggle('hidden', !(gData && gData.admin && gData.admin.mustChange));
@@ -1761,6 +1803,18 @@ function logout() {
   showGate(ghToken() ? 'login' : 'token');
   setCloudStatus('off');
 }
+let loginFails = 0, loginFailName = '';
+function noteLoginFailure(name) {          // 2nd wrong try reveals the reset option
+  if (loginFailName !== name) { loginFailName = name; loginFails = 0; }
+  loginFails += 1;
+  if (loginFails >= 2) $('gl-forgot').classList.remove('hidden');
+  return loginFails >= 2;
+}
+function clearLoginFailures() {
+  loginFails = 0; loginFailName = '';
+  const f = $('gl-forgot');
+  if (f) f.classList.add('hidden');
+}
 async function doWorkerLogin() {
   const name = $('gl-name').value.trim(), pw = $('gl-pass').value;
   if (!name || !pw) { gateErr('Enter your name and password.'); return; }
@@ -1771,7 +1825,13 @@ async function doWorkerLogin() {
     gData = isV1(file) ? virtualFileFromV1(file) : normalizeFile(file);
     const u = userByName(name);
     if (!u) throw new Error('No worker found with that name. (New here? Use the "New Worker" tab.)');
-    if (!(await checkPassword(u, pw))) throw new Error('Wrong password.');
+    if (!(await checkPassword(u, pw))) {
+      const showReset = noteLoginFailure(name);
+      throw new Error(showReset
+        ? 'Wrong password. — Forgot it? Use the \u201cForgot password?\u201d button below.'
+        : 'Wrong password.');
+    }
+    clearLoginFailures();
     $('gl-pass').value = '';
     enterApp(u, gData);
   } catch (e) { gateErr(e.message); }
@@ -1951,8 +2011,59 @@ async function glfSave() {
   const err = await applyResetPassword({ kind: 'worker', name: $('gl-name').value.trim() }, nw);
   if (err) { $('glf-msg').textContent = '⚠ ' + err; return; }
   $('glf-msg').textContent = '✅ Password updated — log in with the new password.';
+  clearLoginFailures();
   $('glf-new').value = ''; $('glf-confirm').value = ''; $('glf-code').value = '';
   resetForgotSteps('glf', 1);
+}
+/* ---------- worker account: change / reset own password ---------- */
+async function changeWorkerPassword() {
+  const msg = $('wp-msg');
+  if (!myUser) { msg.textContent = 'Log in first.'; return; }
+  const cur = $('wp-cur').value, nw = $('wp-new').value, cf = $('wp-confirm').value;
+  if (!cur) { msg.textContent = 'Enter your current password.'; return; }
+  if (!nw || nw.length < 4) { msg.textContent = 'New password must be at least 4 characters.'; return; }
+  if (nw !== cf) { msg.textContent = 'Password and confirmation do not match.'; return; }
+  msg.textContent = 'Checking…';
+  let ok = false;
+  try { ok = await checkPassword(myUser, cur); } catch (e) { ok = false; }
+  if (!ok) { msg.textContent = 'Your current password is not correct.'; $('wp-cur').value = ''; return; }
+  try {
+    const err = await applyResetPassword({ kind: 'worker', name: myUser.name }, nw);
+    if (err) { msg.textContent = '⚠ ' + err; return; }
+    $('wp-cur').value = ''; $('wp-new').value = ''; $('wp-confirm').value = '';
+    msg.textContent = '✅ Password changed. Use the new password next time you log in.';
+    toast('Password changed.');
+  } catch (e) { msg.textContent = '⚠ ' + e.message; }
+}
+async function wpfSend() {
+  const msg = $('wpf-msg');
+  if (!myUser) { msg.textContent = 'Log in first.'; return; }
+  try {
+    msg.textContent = 'Sending code…';
+    await sendResetCode(myUser.name);
+    resetForgotSteps('wpf', 2);
+    msg.textContent = 'A code was sent to the developer\'s email — ask the developer for it. It stays valid for '
+      + RESET_CODE_TTL_HOURS + ' hours.';
+  } catch (e) { msg.textContent = '⚠ ' + e.message; }
+}
+function wpfVerify() {
+  const err = verifyResetCode($('wpf-code').value);
+  if (err) { $('wpf-msg').textContent = err; return; }
+  resetForgotSteps('wpf', 3);
+  $('wpf-msg').textContent = 'Code verified — set the new password below.';
+}
+async function wpfSave() {
+  const msg = $('wpf-msg');
+  if (!myUser) { msg.textContent = 'Log in first.'; return; }
+  const nw = $('wpf-new').value, cf = $('wpf-confirm').value;
+  if (!nw || nw.length < 4) { msg.textContent = 'New password must be at least 4 characters.'; return; }
+  if (nw !== cf) { msg.textContent = 'Password and confirmation do not match.'; return; }
+  const err = await applyResetPassword({ kind: 'worker', name: myUser.name }, nw);
+  if (err) { msg.textContent = '⚠ ' + err; return; }
+  msg.textContent = '✅ Password updated — use the new password next time you log in.';
+  $('wpf-new').value = ''; $('wpf-confirm').value = ''; $('wpf-code').value = '';
+  resetForgotSteps('wpf', 1);
+  toast('Password updated.');
 }
 async function gafSend() {
   try {
@@ -2105,6 +2216,11 @@ $('gl-pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') doWorke
 $('gn-submit').addEventListener('click', doWorkerSignup);
 $('gn-pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') doWorkerSignup(); });
 $('gl-forgot').addEventListener('click', () => { $('gl-fa').classList.toggle('hidden'); $('glf-msg').textContent = ''; resetForgotSteps('glf', 1); });
+$('wp-save').addEventListener('click', changeWorkerPassword);
+$('wpf-send').addEventListener('click', wpfSend);
+$('wpf-verify').addEventListener('click', wpfVerify);
+$('wpf-save').addEventListener('click', wpfSave);
+$('wpf-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') wpfVerify(); });
 $('glf-send').addEventListener('click', glfSend);
 $('glf-verify').addEventListener('click', glfVerify);
 $('glf-save').addEventListener('click', glfSave);
@@ -2251,7 +2367,7 @@ $('worker-detail').addEventListener('click', (e) => {
 document.querySelectorAll('#main-tabs .tab').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('#main-tabs .tab').forEach(b => b.classList.toggle('active', b === btn));
-    ['new', 'log', 'income', 'report', 'backup'].forEach(t => $('tab-' + t).classList.toggle('hidden', t !== btn.dataset.tab));
+    APP_TABS.forEach(t => $('tab-' + t).classList.toggle('hidden', t !== btn.dataset.tab));
   });
 });
 $('f-date').addEventListener('change', recalcHours);
