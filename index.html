@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
-<title>Rafi's Work Hours</title>
+<title>Work Hour Records</title>
 <style>
   :root{
     color-scheme:light;
@@ -229,7 +229,7 @@
       <div class="brand" style="margin-bottom:16px">
         <div class="logo">❄</div>
         <div>
-          <h1 style="font-size:22px">Rafi's Work Hours</h1>
+          <h1 style="font-size:22px">Work Hour Records</h1>
           <p class="sub">Log in to your work records</p>
         </div>
       </div>
@@ -494,7 +494,7 @@
     </div>
   </section>
 
-  <footer>Data auto-saves to the shared GitHub record · ❄ Rafi's Work Hours · <a href="https://github.com/mdraficode/rafi-work-hours-app/releases/latest/download/rafi-work-hours.apk" target="_blank" rel="noopener" style="color:var(--accent-2)">📱 Android app (latest)</a></footer>
+  <footer>Data auto-saves to the shared GitHub record · ❄ Work Hour Records · <a href="https://github.com/mdraficode/rafi-work-hours-app/releases/latest/download/work-hour-records.apk" target="_blank" rel="noopener" style="color:var(--accent-2)">📱 Android app (latest)</a></footer>
 </div>
 <div id="toast" role="status"></div>
 
@@ -607,7 +607,9 @@ function loadState() {
   } catch (e) { return null; }
 }
 
+const DEFAULT_HOURLY_RATE = 12;   // new worker accounts start here; admin can change it per worker
 function emptyRecord() { return { entries: [], paidUpToDate: null, hourlyRate: null, updatedAt: null }; }
+function newWorkerRecord() { return { entries: [], paidUpToDate: null, hourlyRate: DEFAULT_HOURLY_RATE, updatedAt: null }; }
 function normalizeRecord(r) {
   return {
     entries: Array.isArray(r.entries) ? r.entries.filter(x => x && x.date && x.tourName && Number.isFinite(Number(x.hours))).map(x => ({
@@ -624,7 +626,7 @@ let gTours = DEFAULT_TOURS.map(t => ({ ...t }));
 let gData = null;
 let myUser = null;
 let cloudLoaded = false;
-const brand = () => myUser ? myUser.name + "'s Work Record" : "Rafi's Work Hours";
+const brand = () => myUser ? myUser.name + "'s Work Record" : "Work Hour Records";
 function writeCache() {
   if (!myUser) return;
   try { localStorage.setItem(CACHE_PREFIX + myUser.id, JSON.stringify(state)); } catch (e) {}
@@ -1689,7 +1691,7 @@ function enterAdmin() {
   state = emptyRecord();
   try { localStorage.setItem(SESSION_KEY, 'admin'); } catch (e) {}
   $('app-title').textContent = 'Admin Panel';
-  document.title = "Admin Panel — Rafi's Work Hours";
+  document.title = "Admin Panel — Work Hour Records";
   $('main-tabs').classList.add('hidden');
   ['new', 'log', 'income', 'report', 'backup'].forEach(t => $('tab-' + t).classList.add('hidden'));
   $('admin-panel').classList.remove('hidden');
@@ -1745,7 +1747,7 @@ async function doWorkerSignup() {
     await writeCloud((base) => {
       if (base.users.some(x => x.name.trim().toLowerCase() === u.name.trim().toLowerCase())) throw new Error('A worker with that name already exists — log in instead.');
       base.users.push(u);
-      base.records[u.id] = emptyRecord();
+      base.records[u.id] = newWorkerRecord();
     }, 'feat: new worker account — ' + u.name);
     enterApp(u, gData);
   } catch (e) { gateErr(e.message); }
