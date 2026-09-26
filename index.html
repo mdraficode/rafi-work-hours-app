@@ -112,7 +112,12 @@
   .rate input{width:140px}
   .total-row{display:flex;justify-content:space-between;align-items:center;gap:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;border-radius:14px;padding:16px 20px;font-size:15px;font-weight:700;flex-wrap:wrap}
   .total-row b{font-size:26px;font-variant-numeric:tabular-nums}
-  .pkg-row{display:grid;grid-template-columns:28px 1fr 110px 38px;gap:10px;align-items:center;margin-bottom:8px}
+  .pkg-row{display:grid;grid-template-columns:26px 28px 1fr 110px 38px;gap:10px;align-items:center;margin-bottom:8px}
+  .pkg-handle{cursor:grab;user-select:none;color:var(--muted);text-align:center;font-size:15px;line-height:1}
+  .pkg-handle:hover{color:var(--accent-2)}
+  .pkg-row.drag-src{opacity:.45}
+  .pkg-row.drag-over-top{box-shadow:inset 0 3px 0 0 var(--accent-2)}
+  .pkg-row.drag-over-bottom{box-shadow:inset 0 -3px 0 0 var(--accent-2)}
   .pkg-idx{color:var(--muted);font-weight:700;text-align:center}
   .pkg-add{display:grid;grid-template-columns:1fr 110px auto;gap:10px;margin:14px 0 20px;padding-top:14px;border-top:1px dashed var(--line);align-items:center}
   .backup{display:flex;gap:8px;flex-wrap:wrap}
@@ -212,7 +217,7 @@
     .entry{grid-template-columns:1fr 1fr}
     .e-date,.e-tour{grid-column:1/-1}
     .e-actions{grid-column:1/-1;justify-content:flex-start}
-    .pkg-row{grid-template-columns:22px 1fr 92px 34px}
+    .pkg-row{grid-template-columns:20px 22px 1fr 92px 34px}
     .pkg-add{grid-template-columns:1fr auto}
   }
 </style>
@@ -431,7 +436,7 @@
     <h2 style="margin-top:28px">Settings</h2>
     <div class="settings-block">
       <h3 style="font-size:14px;margin-bottom:6px">Tour packages</h3>
-      <p class="hint">Default hours per package — the New entry form fills them in automatically. Logged entries always keep the hours they were saved with.</p>
+      <p class="hint">Default hours per package — the New entry form fills them in automatically. Logged entries always keep the hours they were saved with. Drag the <b>⠿</b> grip up or down to reorder — that sequence is exactly what every worker sees in their package dropdown.</p>
       <div id="pkg-list"></div>
       <div class="pkg-add">
         <input id="p-name" type="text" maxlength="60" placeholder="New package name">
@@ -834,7 +839,8 @@ function renderIncome() {
 function renderPackages() {
   if (!$('pkg-list')) return;
   $('pkg-list').innerHTML = gTours.map((t, i) => `
-    <div class="pkg-row">
+    <div class="pkg-row" data-i="${i}">
+      <span class="pkg-handle" title="Drag up or down to reorder">⠿</span>
       <span class="pkg-idx">${i + 1}.</span>
       <input class="pkg-name" data-i="${i}" type="text" maxlength="60" value="${esc(t.name)}" aria-label="Package name">
       <input class="pkg-hours" data-i="${i}" type="number" min="0" step="0.5" value="${t.hours}" aria-label="Default hours">
@@ -926,6 +932,63 @@ function addPackage() {
   saveTours(); renderPackages(); fillTourSelect();
   toast(`Added "${name}" (${fmtNum(h)} h).`);
 }
+/* ---------- drag & drop: reorder packages (order = every worker's dropdown order) ---------- */
+let pkgDragI = null;
+function pkgClearDrag() {
+  pkgDragI = null;
+  document.querySelectorAll('#pkg-list .pkg-row').forEach(r => {
+    r.draggable = false;
+    r.classList.remove('drag-src', 'drag-over-top', 'drag-over-bottom');
+    delete r.dataset.dropPos;
+  });
+}
+function pkgDropRow(from, to, before) {
+  const t = gTours.splice(from, 1)[0];
+  const ti = to > from ? to - 1 : to;
+  gTours.splice(before ? ti : ti + 1, 0, t);
+  saveTours('chore: reorder tour packages');
+  renderPackages();
+  fillTourSelect();
+  toast('Package order updated — it now applies to all workers.');
+}
+$('pkg-list').addEventListener('mousedown', (e) => {
+  document.querySelectorAll('#pkg-list .pkg-row').forEach(r => { r.draggable = false; });
+  const h = e.target.closest('.pkg-handle');
+  if (h) { const row = h.closest('.pkg-row'); if (row) row.draggable = true; }
+});
+$('pkg-list').addEventListener('dragstart', (e) => {
+  const row = e.target.closest ? e.target.closest('.pkg-row') : null;
+  if (!row || row.draggable !== true) return;
+  pkgDragI = Number(row.dataset.i);
+  if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', ''); } catch (err) {} }
+  row.classList.add('drag-src');
+});
+$('pkg-list').addEventListener('dragover', (e) => {
+  if (pkgDragI == null) return;
+  const rows = [...document.querySelectorAll('#pkg-list .pkg-row')];
+  rows.forEach(r => r.classList.remove('drag-over-top', 'drag-over-bottom'));
+  const row = e.target.closest ? e.target.closest('.pkg-row') : null;
+  if (!row) { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'; if (rows.length) rows[rows.length - 1].classList.add('drag-over-bottom'); return; }
+  if (Number(row.dataset.i) === pkgDragI) return;
+  e.preventDefault();
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+  const rect = row.getBoundingClientRect();
+  const before = e.clientY == null || rect.height === 0 || e.clientY < rect.top + rect.height / 2;
+  row.classList.add(before ? 'drag-over-top' : 'drag-over-bottom');
+  row.dataset.dropPos = before ? 'top' : 'bottom';
+});
+$('pkg-list').addEventListener('drop', (e) => {
+  if (pkgDragI == null) return;
+  e.preventDefault();
+  const from = pkgDragI;
+  const row = e.target.closest ? e.target.closest('.pkg-row') : null;
+  const before = row ? row.dataset.dropPos === 'top' : false;
+  pkgClearDrag();
+  if (!row) { if (from !== gTours.length - 1) pkgDropRow(from, gTours.length - 1, false); return; }
+  if (Number(row.dataset.i) === from) return;
+  pkgDropRow(from, Number(row.dataset.i), before);
+});
+$('pkg-list').addEventListener('dragend', pkgClearDrag);
 function exportData() {
   const data = { app: 'rafi-work-hours', version: 2, exportedAt: new Date().toISOString(),
     worker: myUser ? myUser.name : null,
@@ -1491,9 +1554,9 @@ async function adminTick() {
     if (file) { gData = isV1(file) ? virtualFileFromV1(file) : normalizeFile(file); renderWorkers(); }
   } catch (e) {}
 }
-function saveTours() {
+function saveTours(msg) {
   if (!isAdmin) { toast('Only the admin can change tour packages.'); return; }
-  writeCloud((base) => { base.tours = gTours.map(t => ({ ...t })); }, 'chore: update tour packages')
+  writeCloud((base) => { base.tours = gTours.map(t => ({ ...t })); }, msg || 'chore: update tour packages')
     .then(() => setCloudStatus('synced'))
     .catch(() => setCloudStatus('warn'));
 }
