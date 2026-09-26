@@ -397,6 +397,7 @@
       <button id="r-print" class="ghost">🖨 Print / Save as PDF</button>
       <button id="r-html" class="ghost">⬇ Download HTML</button>
       <button id="r-csv" class="ghost">⬇ Download CSV</button>
+      <button id="r-xlsx" class="ghost">⬇ Download Excel (.xlsx)</button>
     </div>
   </section>
 
@@ -1108,6 +1109,137 @@ function reportCSV() {
   const total = inR.reduce((s, x) => s + x.hours, 0);
   lines.push(['Total', inR.length + ' entries', '', fmtNum(total) + ' h', '', '', ''].join(','));
   return '\uFEFF' + lines.join('\r\n');
+}
+/* ---------- Excel (xlsx) report with live formulas ---------- */
+function loadXLSX() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload = () => res(window.XLSX);
+    s.onerror = () => rej(new Error('could not load the Excel library — check your connection and try again'));
+    document.head.appendChild(s);
+  });
+}
+const XCOL = i => String.fromCharCode(65 + i);
+async function downloadReportXLSX() {
+  if (!lastReport) { toast('Generate the report first, then download it as Excel.'); return; }
+  let XLSX;
+  try { XLSX = await loadXLSX(); } catch (e) { toast('⚠ ' + e.message); return; }
+  const { from, to } = lastReport;
+  const inR = state.entries.filter(x => x.date >= from && x.date <= to)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.tourName.localeCompare(b.tourName));
+  const paidUntil = state.paidUpToDate;
+  const rate = state.hourlyRate;
+  const n = inR.length;
+  const lastRow = n + 1;           // last data row (1-based Excel rows: header = 1)
+  const tRow = lastRow + 1;        // TOTAL row
+  const totalH = inR.reduce((s, x) => s + x.hours, 0);
+  const dblH = inR.filter(x => doubleInfo(x.date).double).reduce((s, x) => s + x.hours, 0);
+  const paidH = inR.filter(x => paidUntil && x.date <= paidUntil).reduce((s, x) => s + x.hours, 0);
+  const totalE = rate != null ? Math.round(totalH * rate * 100) / 100 : 0;
+
+  // ---- Sheet 1: Work Log
+  const ws = {};
+  const put = (c, r, cell) => { ws[c + r] = cell; };
+  ['Date', 'Day', 'Tour package', 'Hours', 'Day type', 'Double?', 'Status', 'Note', 'Rate (€/h)', 'Earnings (€)']
+    .forEach((h, i) => put(XCOL(i), 1, { t: 's', v: h }));
+  inR.forEach((x, i) => {
+    const r = i + 2;
+    const p = parseKey(x.date);
+    const info = doubleInfo(x.date);
+    const isPaid = !!(paidUntil && x.date <= paidUntil);
+    put('A', r, { t: 'd', v: new Date(p.getFullYear(), p.getMonth(), p.getDate()), z: 'yyyy-mm-dd' });
+    put('B', r, { t: 's', v: DAY_S[p.getDay()] });
+    put('C', r, { t: 's', v: x.tourName });
+    put('D', r, { t: 'n', v: x.hours });
+    put('E', r, { t: 's', v: info.double ? info.label : 'Regular' });
+    put('F', r, { t: 's', v: info.double ? 'Yes' : 'No' });
+    put('G', r, { t: 's', v: isPaid ? 'Paid' : 'Open' });
+    put('H', r, { t: 's', v: x.note || '' });
+    if (rate != null) put('I', r, { t: 'n', v: rate });
+    put('J', r, { t: 'n', f: 'IF(ISBLANK(I' + r + '),0,D' + r + '*I' + r + ')', v: rate != null ? Math.round(x.hours * rate * 100) / 100 : 0 });
+  });
+  put('A', tRow, { t: 's', v: 'TOTAL' });
+  put('D', tRow, { t: 'n', f: n ? 'SUM(D2:D' + lastRow + ')' : '0', v: Math.round(totalH * 100) / 100 });
+  put('J', tRow, { t: 'n', f: n ? 'SUM(J2:J' + lastRow + ')' : '0', v: totalE });
+  let vr = tRow + 2;
+  const setV = (label, cell) => { put('A', vr, { t: 's', v: label }); put('D', vr, cell); vr++; };
+  setV('Work days', { t: 'n', f: n ? 'COUNT(A2:A' + lastRow + ')' : '0', v: n });
+  setV('Total hours (sum of column D)', { t: 'n', f: 'D' + tRow, v: Math.round(totalH * 100) / 100 });
+  setV('Hours on ❄ double days (already included in total)', { t: 'n', f: n ? 'SUMIF(F2:F' + lastRow + ',"Yes",D2:D' + lastRow + ')' : '0', v: Math.round(dblH * 100) / 100 });
+  setV('Hours on regular days', { t: 'n', f: n ? 'SUMIF(F2:F' + lastRow + ',"No",D2:D' + lastRow + ')' : '0', v: Math.round((totalH - dblH) * 100) / 100 });
+  setV('Paid hours (paid up to ' + (paidUntil ? fmtDate(paidUntil) : 'not set') + ')', { t: 'n', f: n ? 'SUMIF(G2:G' + lastRow + ',"Paid",D2:D' + lastRow + ')' : '0', v: Math.round(paidH * 100) / 100 });
+  setV('Open (unpaid) hours', { t: 'n', f: n ? 'SUMIF(G2:G' + lastRow + ',"Open",D2:D' + lastRow + ')' : '0', v: Math.round((totalH - paidH) * 100) / 100 });
+  if (rate != null) setV('Hourly rate (€/h)', { t: 'n', v: rate });
+  setV('Estimated earnings (€) (sum of column J)', { t: 'n', f: n ? 'SUM(J2:J' + lastRow + ')' : '0', v: totalE });
+  ws['!ref'] = 'A1:J' + Math.max(vr, tRow);
+  ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 28 }, { wch: 9 }, { wch: 22 }, { wch: 9 }, { wch: 9 }, { wch: 30 }, { wch: 10 }, { wch: 12 }];
+
+  // ---- Sheet 2: Monthly
+  const ms = {};
+  ['Month', 'Days', 'Hours', '❄ hours (included in Hours)', 'Earnings (€)'].forEach((h, i) => ms[XCOL(i) + 1] = { t: 's', v: h });
+  const fp = parseKey(from), tp = parseKey(to);
+  const months = [];
+  let cy = fp.getFullYear(), cm = fp.getMonth() + 1;
+  const ey = tp.getFullYear(), em = tp.getMonth() + 1;
+  while (cy < ey || (cy === ey && cm <= em)) { months.push([cy, cm]); cm++; if (cm > 12) { cm = 1; cy++; } }
+  const AR = "'Work Log'!$A$2:$A$" + lastRow;
+  const DR = "'Work Log'!$D$2:$D$" + lastRow;
+  const FR = "'Work Log'!$F$2:$F$" + lastRow;
+  const JR = "'Work Log'!$J$2:$J$" + lastRow;
+  const sums = { B: 0, C: 0, D: 0, E: 0 };
+  months.forEach(([y, m], i) => {
+    const r = i + 2;
+    const condd = '(' + AR + '>=DATE(' + y + ',' + m + ',1))*(' + AR + '<DATE(' + y + ',' + (m + 1) + ',1))';
+    const inM = inR.filter(x => { const q = parseKey(x.date); return q.getFullYear() === y && q.getMonth() + 1 === m; });
+    const mDbl = inM.filter(x => doubleInfo(x.date).double).reduce((s, x) => s + x.hours, 0);
+    const mE = rate != null ? Math.round(inM.reduce((s, x) => s + x.hours, 0) * rate * 100) / 100 : 0;
+    ms['A' + r] = { t: 's', v: MONTH_NAMES[m - 1] + ' ' + y };
+    ms['B' + r] = { t: 'n', f: 'SUMPRODUCT(' + condd + '*1)', v: inM.length };
+    ms['C' + r] = { t: 'n', f: 'SUMPRODUCT(' + condd + '*' + DR + ')', v: Math.round(inM.reduce((s, x) => s + x.hours, 0) * 100) / 100 };
+    ms['D' + r] = { t: 'n', f: 'SUMPRODUCT(' + condd + '*(' + FR + '="Yes")*' + DR + ')', v: Math.round(mDbl * 100) / 100 };
+    ms['E' + r] = { t: 'n', f: 'SUMPRODUCT(' + condd + '*' + JR + ')', v: mE };
+    sums.B += inM.length; sums.C += inM.reduce((s, x) => s + x.hours, 0); sums.D += mDbl; sums.E += mE;
+  });
+  const mTot = months.length + 2;
+  ms['A' + mTot] = { t: 's', v: 'TOTAL' };
+  ms['B' + mTot] = { t: 'n', f: months.length ? 'SUM(B2:B' + (mTot - 1) + ')' : '0', v: sums.B };
+  ms['C' + mTot] = { t: 'n', f: months.length ? 'SUM(C2:C' + (mTot - 1) + ')' : '0', v: Math.round(sums.C * 100) / 100 };
+  ms['D' + mTot] = { t: 'n', f: months.length ? 'SUM(D2:D' + (mTot - 1) + ')' : '0', v: Math.round(sums.D * 100) / 100 };
+  ms['E' + mTot] = { t: 'n', f: months.length ? 'SUM(E2:E' + (mTot - 1) + ')' : '0', v: Math.round(sums.E * 100) / 100 };
+  ms['!ref'] = 'A1:E' + mTot;
+  ms['!cols'] = [{ wch: 18 }, { wch: 8 }, { wch: 10 }, { wch: 24 }, { wch: 12 }];
+
+  // ---- Sheet 3: Notes
+  const notes = [
+    '❄ ' + brand() + ' — Excel verification report',
+    '',
+    'Generated: ' + fmtDateLong(keyOf(new Date())) + '  ·  Period: ' + fmtDate(from) + ' – ' + fmtDate(to) + '  ·  ' + n + ' work day(s)',
+    '',
+    'HOW TO VERIFY THE CALCULATIONS',
+    '1. Sheet "Work Log" has one row per logged work day, exactly as saved in the app.',
+    '   Column D = hours as logged (already final — the app doubles the DEFAULT hours on ❄ days before saving).',
+    '   Column F marks ❄ double days (Sundays and Finnish public holidays) for reference only.',
+    '   Column I = hourly rate, Column J = D × I (live formula) = estimated earnings per day.',
+    '   Row "TOTAL" and the block below it are all live formulas (SUM / SUMIF / COUNT) over the table above.',
+    '2. Sheet "Monthly" sums the Work Log per month with SUMPRODUCT over real dates — every figure can be traced back.',
+    '3. Paid/Open (column G): days on or before the paid-up-to date (' + (paidUntil ? fmtDate(paidUntil) : 'not set') + ') are "Paid", the rest "Open".',
+    '4. Earnings are estimates using the current hourly rate (' + (rate != null ? rate + ' €/h' : 'no rate set') + ').',
+    '',
+    'No cell needs any input — just read the formulas (shown in the formula bar) and compare with the app.'
+  ];
+  const ns = {};
+  notes.forEach((t, i) => ns['A' + (i + 1)] = { t: 's', v: t });
+  ns['!ref'] = 'A1:A' + notes.length;
+  ns['!cols'] = [{ wch: 115 }];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Work Log');
+  XLSX.utils.book_append_sheet(wb, ms, 'Monthly');
+  XLSX.utils.book_append_sheet(wb, ns, 'Notes');
+  XLSX.writeFile(wb, 'rafi-report_' + from + '_to_' + to + '.xlsx');
+  toast('Excel report downloaded.');
 }
 function downloadFile(name, content, type) {
   const blob = new Blob([content], { type });
@@ -1910,6 +2042,7 @@ $('r-csv').addEventListener('click', () => {
   downloadFile('rafi-report_' + lastReport.from + '_to_' + lastReport.to + '.csv', reportCSV(), 'text/csv');
   toast('CSV downloaded.');
 });
+$('r-xlsx').addEventListener('click', downloadReportXLSX);
 
 /* ---------- init ---------- */
 (function init() {
